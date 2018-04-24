@@ -121,15 +121,9 @@ class module_manager():
         self.check_table_info(table_info)
         # 文件生成
         # 语句模板
-        types = ['Integer', 'String', 'Text', 'Boolean', 'PickleType',
-                 'Date', 'Time', 'Unicode', 'BigInteger', 'Interval']
         tab = '    '
         import_template = 'from {package} import {statement}\n'
-        evaluation_template = '{left} = {right}\n'
         class_template = 'class {table_name}(Base):\n'
-        colunm_template = 'Column({type}{params})'
-        type_template = '{name}{length}' # length需要加括号
-        param_template = ', {param}{param_t}'
 
         md5 = hashlib.md5()
         filename = md5.update(self.get('name').encode()).hexdigest()
@@ -145,13 +139,21 @@ class module_manager():
             for table in table_info:
                 f.write(class_template.format(table_name=table['table_name']))
                 f.write(tab + "__tablename__ = {}\n\n".format(table['table_name']))
-                # f.write(tab + )
+                columns = self.render_column(table)
+                for column in columns:
+                    f.write(tab + column + '\n')
+                f.write('\n')
 
 
     @staticmethod
     def render_column(table):
+        """
+        渲染列语句
+        :param table:
+        :return:
+        """
         columns = []
-        colunm_template = '{field} = Column({type}{params})'
+        column_template = '{field} = Column({type}{params})'
         type_template = '{name}{length}'  # length需要加括号
         param_template = ', {param}{param_t}'
         for field in table['fields']:
@@ -169,6 +171,7 @@ class module_manager():
             if length != '': # 加括号
                 length = '({})'.format(str(length))
             type_s = type_template.format(name=type, length=length)
+            # 'type(length)' or 'type'
             # 生成foreign key
             foreignkey = field.get('foreignkey', None)
             if foreignkey is not None:
@@ -176,14 +179,25 @@ class module_manager():
                                                           format(table=foreignkey['table'],
                                                                  field=foreignkey['field']),
                                                       param_t=param_template)
-            # 生成其他参数
-            nullable = field.get('nullable', True)
-            nullable = str2bool(nullable)
-            unique = field.get('unique', False)
-            unique = str2bool(unique)
-            # 对default参数支持待开发
+                # ', ForeignKey('{table}.{field}'), {param}{param_t}'
+            else:
+                foreignkey_s = param_template
+            # 生成其他参数 对default参数支持待开发
+            nullable = field.get('nullable', 'True')
+            unique = field.get('unique', 'False')
 
+            nullable_p = param_template.format(param='nullable={}'.format(nullable),
+                                               param_t='')
+            # ', nullable={}'
+            unique_p = param_template.format(param='unique={}'.format(unique),
+                                             param_t=nullable_p)
+            # ', unique={}, nullable={}'
             # 生成语句
+            param_s = foreignkey_s.format(param=unique_p, param_t='')
+            # ', ForeignKey('{table}.{field}'), , unique={}, nullable={}'
+            column_s = column_template.format(field=field, type=type_s, params=param_s)
+            columns.append(column_s)
+        return columns
 
 
     @staticmethod
