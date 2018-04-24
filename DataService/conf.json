@@ -1,0 +1,11 @@
+{
+  "current_mod": "dev",
+  "db": {
+    "dev": {
+      "user": "root",
+      "host": "localhost",
+      "port": 3306,
+      "name": "ims"
+    }
+  }
+}
