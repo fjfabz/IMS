@@ -234,6 +234,9 @@ class module_manager():
                 if type not in types:
                     raise ValueError('type<{}> of field<{}> in table<{}> is invalid'.format(type, field, table))
                 # length
+                length = fields[field].get('length', 256)
+                if int(length) > 256:
+                    raise ValueError('length of field<{}> in table<{}> is larger than 256.'.format(field, table))
                 # foreignkey
                 foreign_key = fields[field].get('foreignkey', None)
                 if foreign_key is None:
