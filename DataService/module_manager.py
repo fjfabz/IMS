@@ -125,20 +125,21 @@ class module_manager():
         import_template = 'from {package} import {statement}\n'
         class_template = 'class {table_name}(Base):\n'
 
-        md5 = hashlib.md5()
-        filename = md5.update(self.get('name').encode()).hexdigest()
+        m = hashlib.md5()
+        m.update(self.get('name').encode())
+        filename = m.hexdigest()
 
-        with open('/models/{}.py'.format(filename), 'w+') as f:
+        with open('models/{}.py'.format(filename), 'w+') as f:
             # import
             f.write(import_template.format(package='.', statement='Base'))
             f.write(import_template.format(package='sqlalchemy.types',
-                                           statement='Integer, String, Text, Boolean, PickleType, \
-                                            Date, Time, Unicode, BigInteger, Interval')) # 导入了所有常用类型以便直接添加表
+                                           statement='Integer, String, Text, Boolean, PickleType, Date, Time, Unicode, BigInteger, Interval'))
+                                            # 导入了所有常用类型以便直接添加表
             f.write(import_template.format(package='sqlalchemy', statement='Column, ForeignKey'))
             f.write('\n')
             for table in table_info:
                 f.write(class_template.format(table_name=table['table_name']))
-                f.write(tab + "__tablename__ = {}\n\n".format(table['table_name']))
+                f.write(tab + "__tablename__ = '{}'\n\n".format(table['table_name']))
                 columns = self.render_column(table)
                 for column in columns:
                     f.write(tab + column + '\n')
@@ -154,48 +155,41 @@ class module_manager():
         """
         columns = []
         column_template = '{field} = Column({type}{params})'
-        type_template = '{name}{length}'  # length需要加括号
-        param_template = ', {param}{param_t}'
-        for field in table['fields']:
+        for field_ in table['fields']:
+            param_s = ''
             # 生成type参数
-            type = field['type']
-            try:
-                length = int(field.get('length', ''))
-            except ValueError and TypeError:
-                if type in ['String', 'Integer']:
-                    length = 64
-                else:
-                    length = ''
-            if length > 256:
-                length = 256
-            if length != '': # 加括号
-                length = '({})'.format(str(length))
-            type_s = type_template.format(name=type, length=length)
-            # 'type(length)' or 'type'
-            # 生成foreign key
+            field_name = field_
+            field = table['fields'][field_] # 获取field字典
+            type =  field['type']
+            if type == 'String':
+                length = field.get('length', '256')
+            else:
+                length = ''
+            if length != '':
+                length = '({})'.format(length)
+
+            type_s = '{name}{length}'.format(name=type, length=length)
+            # foreign key
             foreignkey = field.get('foreignkey', None)
             if foreignkey is not None:
-                foreignkey_s = param_template.format(param="ForeignKey('{table}.{field}')".
-                                                          format(table=foreignkey['table'],
-                                                                 field=foreignkey['field']),
-                                                      param_t=param_template)
-                # ', ForeignKey('{table}.{field}'), {param}{param_t}'
-            else:
-                foreignkey_s = param_template
+                param_s += ", ForeignKey('{table}.{field}')".format(table=foreignkey['table'],
+                                                                    field=foreignkey['field'])
+            # primary key
+            print(field_name, table['primary_key'])
+            print(field_name in table['primary_key'])
+            if field_name in table['primary_key']:
+                param_s += ', primary_key=True'
             # 生成其他参数 对default参数支持待开发
-            nullable = field.get('nullable', 'True')
-            unique = field.get('unique', 'False')
+            nullable = field.get('nullable', True)
+            unique = field.get('unique', False)
 
-            nullable_p = param_template.format(param='nullable={}'.format(nullable),
-                                               param_t='')
-            # ', nullable={}'
-            unique_p = param_template.format(param='unique={}'.format(unique),
-                                             param_t=nullable_p)
-            # ', unique={}, nullable={}'
+            if not nullable:
+                param_s += ', nullable=False'
+            if unique:
+                param_s += ', unique=True'
+
             # 生成语句
-            param_s = foreignkey_s.format(param=unique_p, param_t='')
-            # ', ForeignKey('{table}.{field}'), , unique={}, nullable={}'
-            column_s = column_template.format(field=field, type=type_s, params=param_s)
+            column_s = column_template.format(field=field_name, type=type_s, params=param_s)
             columns.append(column_s)
         return columns
 
@@ -234,14 +228,14 @@ class module_manager():
                 if not formating_check(field):
                     raise ValueError('field name<{}> in table<{}> is invalid'.format(field, table_name))
                 # type
-                type = field.get('type', None)
+                type = fields[field].get('type', None)
                 if type is None:
                     raise ValueError('type of field<{}> is required', format(field))
                 if type not in types:
                     raise ValueError('type<{}> of field<{}> in table<{}> is invalid'.format(type, field, table))
-
+                # length
                 # foreignkey
-                foreign_key = field.get('foreignkey', None)
+                foreign_key = fields[field].get('foreignkey', None)
                 if foreign_key is None:
                     continue
                 if 'table' not in foreign_key and 'field' not in foreign_key:
