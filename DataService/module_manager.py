@@ -103,6 +103,7 @@ class module_manager():
             - 表属性记录
             - default参数
             - 注释
+        :param update: 是否更新数据库
         :param table_info: [...
                 {
                     table_name:
@@ -266,6 +267,10 @@ class module_manager():
             for field in fields:
                 if not formating_check(field):
                     raise ValueError('field name<{}> in table<{}> is invalid'.format(field, table_name))
+                try:
+                    int(fields[field].get('sensitivity', 0))
+                except ValueError:
+                    raise ValueError('sensitivity of field<{}> in table<{}> is invalid'.format(field, table_name))
                 # type
                 type = fields[field].get('type', None)
                 if type is None:
