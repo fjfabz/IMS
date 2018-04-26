@@ -7,7 +7,8 @@ from .errors import general_error
 from .utils import *
 import json, base64
 import hashlib
-
+from alembic.config import Config
+from alembic import command
 
 """
  TODO:
@@ -35,7 +36,7 @@ class module_manager():
         """
         # 重复模块校验
         name = module_info.get('name', None)
-        self.row = self.session.query(module_reg).filter_by(name=name).first()
+        self.row = self.session.query(ModuleReg).filter_by(name=name).first()
         if self.row is not None:
             raise ValueError('module with name<{}> is already registered'.format(self.row.name))
         # 公钥合法性校验
@@ -43,12 +44,12 @@ class module_manager():
         if not pubkey_check(pubkey):
             raise ValueError('invalid pubkey')
 
-        self.row = module_reg(name=module_info['name'], description=module_info['description'],
-                              user_role=module_info['user_role'],pubkey=module_info['pubkey'],
-                              auth=module_info.get('auth', 'anonymous'),
-                              auth_email=module_info['auth_email'],
-                              status=0, certification=module_info.get('certification', 1),
-                              register_time=datetime.datetime.now(), permission=0)
+        self.row = ModuleReg(name=module_info['name'], description=module_info['description'],
+                             user_role=module_info['user_role'], pubkey=module_info['pubkey'],
+                             auth=module_info.get('auth', 'anonymous'),
+                             auth_email=module_info['auth_email'],
+                             status=0, certification=module_info.get('certification', 1),
+                             register_time=datetime.datetime.now(), permission=0)
         self.session.add(self.row)
         self.session.commit()
         return self.row
@@ -59,7 +60,7 @@ class module_manager():
         :param id: 模块id
         :return: 行对象
         """
-        self.row = self.session.query(module_reg).filter_by(id=id).first()
+        self.row = self.session.query(ModuleReg).filter_by(id=id).first()
         if self.row is None:
             raise ValueError('Failed to load mod whit id={}'.format(id))
         return self.row
@@ -93,17 +94,25 @@ class module_manager():
         # self.pubkey = load_key()[0]
         return verify(pubkey_str(), sign, self.get('pubkey'))
 
-    def create_table(self, table_info):
+    def create_table(self, table_info, update=False):
         """
-        注册私有表
+        生成私有表
+        TODO：
+            - 文件可用性测试
+            - __init__重复导入校验
+            - 表属性记录
+            - default参数
+            - 注释
         :param table_info: [...
                 {
                     table_name:
+                    sensitivity:
                     primary_key: []
                     fields: {
                         name: {
                             type:
                             length:
+                            sensitivity： # 敏感度
                             nullable:
                             unique:
                             default: # 待支持
@@ -117,17 +126,17 @@ class module_manager():
 
         :return:
         """
-        # 合法性校验
-        self.check_table_info(table_info)
         # 文件生成
         # 语句模板
         tab = '    '
         import_template = 'from {package} import {statement}\n'
         class_template = 'class {table_name}(Base):\n'
-
+        # 文件名hash
         m = hashlib.md5()
         m.update(self.get('name').encode())
         filename = m.hexdigest()
+        if not formating_check(filename):
+            filename = '_' + filename
 
         with open('models/{}.py'.format(filename), 'w+') as f:
             # import
@@ -144,6 +153,33 @@ class module_manager():
                 for column in columns:
                     f.write(tab + column + '\n')
                 f.write('\n')
+
+        with open('models/__init__.py', 'a+') as f:
+            init_s = 'from .{} import * # from module<{}>\n'.format(filename, self.get('name'))
+            f.write(init_s)
+        # 数据库更新
+        if update:
+            alembic_cfg = Config('alembic.ini')
+            command.revision(alembic_cfg, 'module<{}> register table'.format(self.get('name')),
+                             autogenerate=True)
+            command.upgrade(alembic_cfg, 'head')
+
+    def register_table(self, table_info):
+        # 合法性校验
+        self.check_table_info(table_info)
+        for table in table_info:
+            sensitivity = int(table.get('sensitivity', 0))
+            table_row = Tables(owner_id=self.get('id'), status=0, sensitivity=sensitivity)
+            self.session.add(table_row)
+            self.session.commit() # 获取id
+            for field in table['fields']:
+                f_sensitivity = int(table['fields'][field].get('sensitivity', 0))
+                field_row = Fields(name=field, table_id=table_row.id, sensitivity=f_sensitivity)
+                self.session.add(field_row)
+            try:
+                self.session.commit()
+            except:
+                self.session.rollback()
 
 
     @staticmethod
@@ -175,8 +211,6 @@ class module_manager():
                 param_s += ", ForeignKey('{table}.{field}')".format(table=foreignkey['table'],
                                                                     field=foreignkey['field'])
             # primary key
-            print(field_name, table['primary_key'])
-            print(field_name in table['primary_key'])
             if field_name in table['primary_key']:
                 param_s += ', primary_key=True'
             # 生成其他参数 对default参数支持待开发
@@ -207,6 +241,11 @@ class module_manager():
             if not formating_check(table_name):
                 raise ValueError('table_name<{}> is invalid'.format(table_name))
             tables.append(table_name)
+            # sensitivity
+            try:
+                int(table.get('sensitivity', 0))
+            except ValueError:
+                raise ValueError('sensitivity of table<{}> is invalid'.format(table_name))
 
         for table in table_info:
             table_name = table.get('table_name', None)
@@ -278,39 +317,3 @@ def signature_verify(func):
             return general_error('403', request.args.get('signature', None), pubkey=mod.get('pubkey'))
         return func(*args, **kwargs)
     return wrapper
-
-
-
-
-'''
-
-:param
-[{
-            table: 'table_a',
-            primary: {
-                
-            }
-            fields: {
-                'a': 'Colunm(String(128))',
-                'b': 'relationship('table_b', backref='table_a')'
-        }
-
-        },
-        {
-            table: 'xx',
-            associative: True,
-            define: 'Table(
-                "teacher_classes",
-                Base.metadata,
-                Column("teacher_id", Integer, ForeignKey("teacher.id"), nullable=False, primary_key=True),
-                Column("classes_id", Integer, ForeignKey("classes.id"), nullable=False, primary_key=True)'
-        )'
-        }]
-:return:
-
-filed_template = '{filed} = {declaration}'
-import_template = 'from {} import '
-with open('/models/{}.py'.format(self.row.name), 'w+') as f:
-    f.write()
-'''
-
