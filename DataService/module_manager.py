@@ -170,7 +170,7 @@ class module_manager():
         self.check_table_info(table_info)
         for table in table_info:
             sensitivity = int(table.get('sensitivity', 0))
-            table_row = Tables(owner_id=self.get('id'), status=0, sensitivity=sensitivity)
+            table_row = Tables(name=table['table_name'], owner_id=self.get('id'), status=0, sensitivity=sensitivity)
             self.session.add(table_row)
             self.session.commit() # 获取id
             for field in table['fields']:
@@ -181,6 +181,7 @@ class module_manager():
                 self.session.commit()
             except:
                 self.session.rollback()
+
 
 
     @staticmethod
@@ -229,14 +230,17 @@ class module_manager():
         return columns
 
 
-    @staticmethod
-    def check_table_info(table_info):
+    def check_table_info(self, table_info):
         tables = []
         for table in table_info:
             # table name
             table_name = table.get('table_name', None)
             if table_name is None:
                 raise ValueError('table_name is required')
+            # 表名查重
+            if len(self.session.query(Tables).filter_by(name=table_name).all()):
+                # 有同名表
+                raise ValueError('table<{}> is existed'.format(table_name))
             if table_name in tables:
                 raise ValueError('table_name<{}> is repeat'.format(table_name))
             if not formating_check(table_name):
@@ -316,7 +320,8 @@ def signature_verify(func):
             mod = module_manager(id)  # 实例化module_manager
         except ValueError:
             return general_error('400', 'module_id invalid')
-
+        # 模块权限认证
+        # 验证签名
         v = mod.verify(sign) # type(sign) == bytes
         if not v:
             return general_error('403', request.args.get('signature', None), pubkey=mod.get('pubkey'))

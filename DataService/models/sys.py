@@ -3,7 +3,7 @@ from sqlalchemy.types import  String, Text, TIMESTAMP, PickleType, Integer
 from sqlalchemy.orm import  relationship
 from sqlalchemy import Column, ForeignKey
 
-class module_reg(Base):
+class ModuleReg(Base):
     __tablename__ = 'module_reg'
 
     id = Column(Integer, primary_key=True)
@@ -27,24 +27,30 @@ class module_reg(Base):
     star_time = Column(TIMESTAMP) # 挂载时间
     stop_time = Column(TIMESTAMP) # 停止时间
     permission = Column(Integer) # 权限级别
-    private_table = relationship('tables', backref='module_reg') # 模块私有表
+    private_table = relationship('Tables', backref='module_reg') # 模块私有表
 
-class tables(Base):
+class Tables(Base):
     __tablename__ = 'tables'
 
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(64))
     owner_id = Column(Integer, ForeignKey('module_reg.id'))
-    fields = relationship('fields', backref='tables')
+    fields = relationship('Fields', backref='tables')
+    status = Column(Integer)
+    # 0 未审核
+    # 1 已审核
+    # 2 修改未审核
     sensitivity = Column(Integer)
 
-class fields(Base):
+class Fields(Base):
     __tablename__ = 'fields'
 
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(64))
     table_id = Column(Integer, ForeignKey('tables.id'))
     sensitivity = Column(Integer)
 
-class sys_api(Base):
+class SysAPI(Base):
     __tablename__ = 'sys_api'
 
     id = Column(Integer, primary_key=True)
@@ -53,7 +59,8 @@ class sys_api(Base):
     status = Column(Integer)
     sensitivity = Column(Integer) # API敏感度
 
-class api_log(Base):
+# log
+class APILog(Base):
     __tablename__ = 'api_log'
 
     id = Column(Integer, primary_key=True)
@@ -65,7 +72,7 @@ class api_log(Base):
     http_status = Column(Integer)
     detail = Column(String(256))
 
-class module_log(Base):
+class ModuleLog(Base):
     __tablename__ = 'module_log'
 
     id = Column(Integer, primary_key=True)
@@ -74,7 +81,7 @@ class module_log(Base):
     level = Column(String(64))
     detail = Column(String(256))
 
-class sys_log(Base):
+class SysLog(Base):
     __tablename__ = 'sys_log'
 
     id = Column(Integer, primary_key=True)
@@ -86,13 +93,13 @@ class sys_log(Base):
 
 
 # 配置表
-class module_status(Base):
+class ModuleStatus(Base):
     __tablename__ = 'module_status'
 
     code = Column(Integer, primary_key=True, autoincrement=False)
     description = Column(String(64))
 
-class sensitivity(Base):
+class Sensitivity(Base):
     __tablename__ = 'sensitivity'
     # 0 开放数据
     # n n级敏感
@@ -100,7 +107,7 @@ class sensitivity(Base):
     code = Column(Integer, primary_key=True, autoincrement=False)
     description = Column(String(64))
 
-class roles(Base):
+class Roles(Base):
     __tablename__ = 'roles'
 
     code = Column(Integer, primary_key=True, autoincrement=False) # 二进制位表示
