@@ -4,8 +4,8 @@ import datetime
 from functools import wraps
 from flask import request, jsonify
 from .errors import general_error
-from .utils import *
-import json, base64
+from .utils.utils import *
+import base64
 import hashlib
 from alembic.config import Config
 from alembic import command
@@ -166,6 +166,12 @@ class module_manager():
             command.upgrade(alembic_cfg, 'head')
 
     def register_table(self, table_info):
+        """
+        注册私有表
+        note: 注册后表进入待审核状态
+        :param table_info:
+        :return:
+        """
         # 合法性校验
         self.check_table_info(table_info)
         for table in table_info:
@@ -181,8 +187,6 @@ class module_manager():
                 self.session.commit()
             except:
                 self.session.rollback()
-
-
 
     @staticmethod
     def render_column(table):
@@ -228,7 +232,6 @@ class module_manager():
             column_s = column_template.format(field=field_name, type=type_s, params=param_s)
             columns.append(column_s)
         return columns
-
 
     def check_table_info(self, table_info):
         tables = []
@@ -304,6 +307,56 @@ class module_manager():
                         if foreign_key['field'] not in t['fields']:
                             raise ValueError(
                                 'foreign key of field<{}> in table<{}> is not defined'.format(field, table))
+
+    def check_table_permission(self, table):
+        """
+        验证对表的访问权限
+        :param table:
+        :return:
+        """
+        sens = self.session.query(Tables).filter_by(name=table).first().sensitivity
+        if sens > self.get('permission'):
+            return False
+        return True
+
+    def available_fields(self, table):
+        """
+        返回表中当前module可查询字段列表
+        :param table:
+        :return:
+        """
+        fields = self.session.query(Tables).filter_by(name=table).first().fields
+        field_l = []
+        for field in fields:
+            sens = field.sensitivity
+            if sens <= self.get('permission'):
+                field_l.append(field.name)
+        return field_l
+
+    def create_api(self, table_name, methods):
+        """
+        在query_api.py中生成api语句
+        :param table_name:
+        :param methods:
+        :return:
+        """
+        table_info = self.session.query(Tables).filter_by(name=table_name).first()
+        if table_info is None:
+            raise ValueError('table<{}> is not existed',format(table_name))
+        # if table_info.api_gene is True:
+        #   return
+        statement = """
+    from DataService.models import {table}
+    api_manager.create_api(
+        {table},
+        methods={methods},
+        url_prefix='/query',
+        preprocessors=preprocessors_dict,
+        postprocessors=postprocessors_dict,
+        allow_patch_many=True
+    )"""
+        with open('query_api.py', 'a+') as f:
+            f.write(statement.format(table=table_name, methods=str(methods)))
 
 
 
