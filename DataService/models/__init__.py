@@ -1,7 +1,7 @@
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from ..utils import *
+from ..utils.utils import *
 
 conf = get_conf_from_json('../conf.json')
 db_conf = conf['db'][conf['current_mod']]

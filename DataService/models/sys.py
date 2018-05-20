@@ -1,5 +1,5 @@
 from . import Base, engine
-from sqlalchemy.types import  String, Text, TIMESTAMP, PickleType, Integer
+from sqlalchemy.types import  String, Text, TIMESTAMP, PickleType, Integer, Boolean
 from sqlalchemy.orm import  relationship
 from sqlalchemy import Column, ForeignKey
 
@@ -28,18 +28,20 @@ class ModuleReg(Base):
     stop_time = Column(TIMESTAMP) # 停止时间
     permission = Column(Integer) # 权限级别
     private_table = relationship('Tables', backref='module_reg') # 模块私有表
+    modify_permission = relationship('Tables') # 修改权限
 
 class Tables(Base):
     __tablename__ = 'tables'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    name = Column(String(64))
+    name = Column(String(64), unique=True)
     owner_id = Column(Integer, ForeignKey('module_reg.id'))
     fields = relationship('Fields', backref='tables')
     status = Column(Integer)
     # 0 未审核
     # 1 已审核
     # 2 修改未审核
+    api_gene = Column(Boolean, default=False)
     sensitivity = Column(Integer)
 
 class Fields(Base):
