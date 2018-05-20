@@ -1,7 +1,7 @@
 import pytest
 import requests
 from . import base_url, privkey
-from ..utils import *
+from ..utils.utils import *
 import json, base64
 
 '''

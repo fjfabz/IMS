@@ -1,7 +1,7 @@
 import pytest
 import requests
 import json
-from ..utils import *
+from ..utils.utils import *
 # from . import pubkey
 pubkey = pubkey_str()
 

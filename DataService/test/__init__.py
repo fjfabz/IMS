@@ -1,4 +1,4 @@
-from ..utils import *
+from ..utils.utils import *
 
 pubkey = pubkey_str()
 privkey = priv_str()
