@@ -18,7 +18,7 @@ def init_sys_tables():
             session.add(new_t)
             session.commit()
             f = session.execute("SELECT COLUMN_NAME FROM information_schema.columns\
-                                  WHERE table_schema = 'ims' AND table_name = 'module_reg'").fetchall()
+                                  WHERE table_schema = 'ims' AND table_name = '{}'".format(table_name)).fetchall()
             for j in range(len(f)):
                 new_f = Fields(name=f[j][0], table_id=new_t.id, sensitivity=0)
                 session.add(new_f)
