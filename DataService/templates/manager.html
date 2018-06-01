@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>数据库管理</title>
+    <!-- <link rel="stylesheet" href="{{url_for('static', filename='css/bootstrap.css')}}"> -->
+    <link rel="stylesheet" href="{{url_for('static', filename='css/bootstrap.css')}}">
+    <link rel="stylesheet" href="{{url_for('static', filename='css/main.css')}}">
+    <script type="text/javascript" src="{{url_for('static', filename='js/main.js')}}"></script>
+</head>
+<body>
+<!--macro-->
+<!--表信息-->
+{% macro table_card(name) -%}
+    <div id="table-{{data.tables[name]['id']}}" class="panel panel-default">
+        <div class="panel-heading">
+            <span class="panel-title">
+                {{data.tables[name].name}}
+            </span>
+            <div class="btn-group btn-group-sm" style="margin-left: 5rem">
+                <button table-id="{{data.tables[name]['id']}}" onclick="modifyTableInfo(this)"
+                        type="button" class="btn btn-info">修改</button>
+                <button table-id="{{data.tables[name]['id']}}"
+                        type="button" class="btn btn-danger">删除</button>
+            </div>
+        </div>
+        <div class="panel-body">
+        {% for item in data.show_info %}
+            <div id="{{item}}" class="table-info col-md-6 table-info">
+                {{data.show_info[item]}}: {{data.tables[name][item]}}
+            </div>
+        {% endfor %}
+        <div id="note" class="table-info col-md-12 table-info">
+            备注: <div class="note"> {{data.tables[name][note]}} </div>
+        </div>
+        {{field(name)}}
+        </div>
+    </div>
+{%- endmacro %}
+<!--字段表格-->
+{% macro field(name) -%}
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>id</th>
+            <th>名称</th>
+            <th>描述</th>
+            <th>敏感度</th>
+            <th>操作</th>
+            <th>备注</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for field in data.tables[name].fields %}
+        <tr id="field-{{field.id}}">
+            <td>{{field.id}}</td>
+            <td>{{field.name}}</td>
+            <td>这是描述</td>
+            <td>{{field.sensitive}}</td>
+            <td>
+                <div class="btn-group btn-group-sm">
+                    <button id="field-{{field.id}}-modify" type="button" class="btn btn-info">修改</button>
+                    <button id="field-{{field.id}}-del" type="button" class="btn btn-danger">删除</button>
+                </div>
+            </td>
+            <td>这是备注</td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{%- endmacro %}
+
+
+    <div class="container">
+        <div class="col-md-2 side-bar">
+            <div class="side-bar-title">
+                数据库管理
+            </div>
+            <ul class="nav nav-stacked">
+            {% for tag in data.tag_list %}
+                {% if tag == data.current_tag %}
+                <li class="active">
+                    <a href="">{{tag}}</a>
+                </li>
+                {% else %}
+                <li>
+                    <a href="">{{tag}}</a>
+                </li>
+                {% endif %}
+            {% endfor %}
+            </ul>
+        </div>
+        <div class="col-md-10">
+            {% for t in data.tables %}
+                {{ table_card(t) }}
+            {% endfor %}
+        </div>
+    </div>
+</body>
+</html>
