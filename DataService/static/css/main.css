@@ -1,0 +1,23 @@
+.side-bar{
+    background-color: #eeeeee;
+    height: 100%;
+    /*position: absolute;*/
+    bottom: 0px;
+    left: 0px;
+}
+.side-bar-title {
+    font-size: 24px;
+    color: #000000;
+}
+.side-bar-active{
+    background-color: #c8c8c8;
+}
+
+a, a:hover{
+    color: #000;
+    text-decoration: none;
+}
+
+.panel-title{
+    font-size: 1.5rem;
+}
