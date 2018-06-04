@@ -109,11 +109,15 @@ class module_manager():
                     table_name:
                     sensitivity:
                     primary_key: []
+                    description:
+                    note:
                     fields: {
                         name: {
                             type:
                             length:
                             sensitivity： # 敏感度
+                            description:
+                            note:
                             nullable:
                             unique:
                             default: # 待支持
@@ -240,6 +244,7 @@ class module_manager():
             table_name = table.get('table_name', None)
             if table_name is None:
                 raise ValueError('table_name is required')
+            table['table_name'] = table_name.lower() # 表名统一小写
             # 表名查重
             if len(self.session.query(Tables).filter_by(name=table_name).all()):
                 # 有同名表
