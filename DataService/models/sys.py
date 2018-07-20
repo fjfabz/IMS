@@ -29,12 +29,14 @@ class ModuleReg(Base):
     permission = Column(Integer) # 权限级别
     private_table = relationship('Tables', backref='module_reg') # 模块私有表
     modify_permission = relationship('Tables') # 修改权限
+    server_entry = Column(String(256)) # 服务入口地址
 
 class Tables(Base):
     __tablename__ = 'tables'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String(64), unique=True)
+    description = Column(String(256))
     owner_id = Column(Integer, ForeignKey('module_reg.id'))
     fields = relationship('Fields', backref='tables')
     status = Column(Integer)
@@ -42,12 +44,15 @@ class Tables(Base):
     # 1 已审核
     # 2 修改未审核
     api_gene = Column(Boolean, default=False)
+    note = Column(Text)
     sensitivity = Column(Integer)
 
 class Fields(Base):
     __tablename__ = 'fields'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    description = Column(String(256))
+    note = Column(Text)
     name = Column(String(64))
     table_id = Column(Integer, ForeignKey('tables.id'))
     sensitivity = Column(Integer)
