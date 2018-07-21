@@ -1,0 +1,6 @@
+# 数据库管理
+数据库使用mysql + sqlalchemy + alembic进行管理
+## 数据表生成
+数据表生成工作有module_manager进行。申请建立新表后，module_manager会将自动生成sqlalchemy需要的描述，并操作alembic进行数据库更新。
+
+
