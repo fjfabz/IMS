@@ -313,16 +313,49 @@ class module_manager():
                             raise ValueError(
                                 'foreign key of field<{}> in table<{}> is not defined'.format(field, table))
 
-    def check_table_permission(self, table):
+    def have_query_permission(self, table):
         """
         验证对表的访问权限
-        :param table:
-        :return:
+        :param table: 表名
+        :return: 权限小于表最低权限返回False，否则返回True
         """
         sens = self.session.query(Tables).filter_by(name=table).first().sensitivity
         if sens > self.get('permission'):
             return False
         return True
+
+    def have_row_delete_permission(self, table):
+        """
+        删除行权限
+        当前仅允许删除私有表数据
+        :param table:
+        :return:
+        """
+        for t in self.row.private_table:
+            if t.name == table:
+                return True
+        return False
+
+    def modifiable_fields(self, table):
+        """
+        表修改权限，包括创建表和修改数据
+        当前由字段敏感度决定
+        :param table:
+        :return:
+        """
+        return self.available_fields(table)
+
+
+    def have_table(self, table):
+        """
+        查询私有表
+        :param table:
+        :return:
+        """
+        for t in self.row.private_table:
+            if t.name == table:
+                return True
+        return False
 
     def available_fields(self, table):
         """
