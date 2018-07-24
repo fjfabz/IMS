@@ -5,6 +5,7 @@ from alembic.config import Config
 from alembic import command
 import hashlib
 import os
+import json
 
 class file_scanner:
     def __init__(self, name, file_path=None):
@@ -30,7 +31,17 @@ class file_scanner:
         self.content += line
         self.content_list.append(line)
 
-
+    def to_json(self):
+        j = {}
+        attrs = dir(self)
+        for attr in attrs:
+            if attr[:2] == '__':
+                continue
+            a = self.__getattribute__(attr)
+            if a.__class__.__name__ == 'method':
+                continue
+            j[attr] = a.__str__()
+        return json.dumps(j)
 
 class class_in_file(file_scanner):
     """
