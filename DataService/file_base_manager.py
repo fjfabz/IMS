@@ -1,22 +1,17 @@
 from .models import get_session
-from .models import get_session
 from .models.sys import *
-import datetime
-from functools import wraps
-from flask import request, jsonify
-from .errors import general_error
 from .utils.utils import *
-import base64
-import hashlib
 from alembic.config import Config
 from alembic import command
+import hashlib
+import os
 
 class file_scanner:
     def __init__(self, name, file_path=None):
         self.name = name
         self.begin = None
         self.end = None
-        self.file = file_path
+        self.file = os.path.abspath(file_path)
         self.content = ''
         self.content_list = []
 
@@ -31,10 +26,11 @@ class file_scanner:
             else:
                 break
 
-
     def add_content(self, line):
         self.content += line
         self.content_list.append(line)
+
+
 
 class class_in_file(file_scanner):
     """
@@ -114,6 +110,8 @@ class file_base_manager:
     @staticmethod
     def _get_params(line):
         params = line.split(' ')[-1].split(':')[0].split('(')[-1].split(')')[0].split(',')
+        if params == '':
+            return None
         for p in params:
             p.replace(' ', '')
         return params
