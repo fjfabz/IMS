@@ -4,38 +4,68 @@ from .utils.utils import *
 from alembic.config import Config
 from alembic import command
 import hashlib
-import os
+import os, shutil
 import json
+from .utils.db_tools import all_tables
 
 class file_scanner:
-    def __init__(self, name, file_path=None):
+    def __init__(self, name, file_path=None, layer=0, belonging=None):
         self.name = name
         self.begin = None
         self.end = None
         self.file = os.path.abspath(file_path)
-        self.content = ''
-        self.content_list = []
+        self._content = ''
+        self._content_list = []
+        self.layer = layer
+        self.inner_methods = [] # 子方法 对class是成员方法 对func是内部函数
+        self.inner_classes = []
+        self.belonging = belonging
+        self.type_ = None
+
+    def root(self):
+        s = self
+        while s.belonging:
+            s = s.belonging
+        return s
+
+    def belong_to(self, class_or_methods):
+        self.belonging = class_or_methods
+        if self.type_ == 'classes':
+            self.belonging.add_class(self)
+        if self.type_ == 'methods':
+            self.belonging.add_method(self)
+        if not self.type_:
+            raise TypeError('base class can not be used')
+
+    def add_class(self, class_):
+        self.inner_classes.append(class_)
 
     def begin_at(self, line_num):
         self.begin = line_num
 
-    def end_at(self, line_num):
+    def end_at(self, line_num, final=False):
         self.end = line_num
-        for i in range(1, len(self.content_list)):
-            if self.content_list[-i] == '\n':
+        for i in range(1, len(self._content_list)):
+            if self._content_list[-i] == '\n':
                 self.end -= 1
             else:
                 break
+        if final:
+            bl = self
+            while bl.belonging:
+                if not bl.belonging.end:
+                    bl.belonging.end_at(self.end)
+                    bl = bl.belonging
 
     def add_content(self, line):
-        self.content += line
-        self.content_list.append(line)
+        self._content += line
+        self._content_list.append(line)
 
     def to_json(self):
         j = {}
         attrs = dir(self)
         for attr in attrs:
-            if attr[:2] == '__':
+            if attr[:1] == '_':
                 continue
             a = self.__getattribute__(attr)
             if a.__class__.__name__ == 'method':
@@ -43,21 +73,27 @@ class file_scanner:
             j[attr] = a.__str__()
         return json.dumps(j)
 
+    def add_method(self, method):
+        self.inner_methods.append(method)
+
 class class_in_file(file_scanner):
     """
         用来表示文件中的一个类
     """
-    def __init__(self, name, file_path=None, parent=None):
-        file_scanner.__init__(self, name, file_path)
+
+    def __init__(self, name, file_path=None, parent=None, layer=0, belonging=None):
+        file_scanner.__init__(self, name, file_path, layer=layer, belonging=belonging)
         self.parent = parent
+        self.type_ = 'classes'
 
 class method_in_file(file_scanner):
     """
-        用来表示文件中的一个类
+        用来表示文件中的一个方法
     """
-    def __init__(self, name, file_path=None, params=None):
-        file_scanner.__init__(self, name, file_path)
+    def __init__(self, name, file_path=None, params=None, layer=0, belonging=None):
+        file_scanner.__init__(self, name, file_path, layer=layer, belonging=belonging)
         self.params = params
+        self.type_ = 'methods'
 
 class file_base_manager:
     """
@@ -66,10 +102,7 @@ class file_base_manager:
     api管理器：管理所有api并负责数据库api的生成和修改
     """
     def __init__(self):
-        self.file_info = {
-            'classes': [],
-            'methods': [],
-        }
+        self.file_map = {}
         self.session = get_session()
 
     def scan_file(self, path):
@@ -82,35 +115,64 @@ class file_base_manager:
             raise ValueError('.py file required')
         line_id = 0
         current_handle = None
+        file_info = {
+            'classes': [],
+            'methods': [],
+        }
         with open(path, 'r', encoding='utf-8') as f:
-            while True:
-                line = f.readline()
-                if line == '':
-                    if current_handle:
-                        self.file_info[current_handle][-1].end_at(line_id)
-                    break
+            # 所有层级的类和方法都被统计到file_info中 所属关系在类中记录
+            for line in f:
                 line_id += 1
-                if line[:5] == 'class' or line[:3] == 'def':
-                    # 处理上一段
+                current_obj = self._get_obj(line, path)
+                if current_obj: # 起始行
+                    current_obj.begin_at(line_id)
+                    # 处理上下关系
                     if current_handle:
-                        self.file_info[current_handle][-1].end_at(line_id - 1)
-                    # 加入下一段
-                    if line[:5] == 'class':
-                        current_handle = 'classes'
-                        class_ = class_in_file(self._get_class_name(line), path, self._get_parent(line))
-                        class_.begin_at(line_id)
-                        self.file_info['classes'].append(class_)
-                    if line[:3] == 'def':
-                        current_handle = 'methods'
-                        method = method_in_file(self._get_class_name(line), path, self._get_params(line))
-                        method.begin_at(line_id)
-                        self.file_info['methods'].append(method)
-                if current_handle:
-                    self.file_info[current_handle][-1].add_content(line)
+                        # 定义下的第一个二级方法
+                        if current_handle.layer == current_obj.layer - 1:
+                            current_obj.belong_to(current_handle)
+                        # 后续同级定义
+                        if current_handle.layer == current_obj.layer \
+                            and current_handle.root():
+                            current_obj.belong_to(current_handle.root())
+                            current_handle.end_at(line_id - 1)
+                        # 新的顶层定义
+                        if current_handle.root().layer == current_obj.layer:
+                            current_handle.end_at(line_id - 1, final=True)
+                    current_handle = current_obj
+                    file_info[current_obj.type_].append(current_obj)
+                elif current_handle:
+                    current_handle.add_content(line)
+            current_handle.end_at(line_id, final=True)
+        self.file_map[os.path.abspath(path)] = file_info
+        return file_info
+
+    def _get_obj(self, line, path):
+        s = line.split(' ')
+        if 'def' in s:
+            return method_in_file(self._get_class_name(line), path, self._get_params(line), layer=self._get_layer(line))
+        if 'class' in s:
+            return class_in_file(self._get_class_name(line), path, self._get_parent(line), layer=self._get_layer(line))
+        return None
+
+
+
+    @staticmethod
+    def _get_layer(line):
+        pre = ''
+        for i in line:
+            if i.isalpha() or i == '_':
+                break
+            pre += i
+        if len(pre) == 0 or pre[0] == '\t':
+            return pre.count('\t')
+        if pre[0] == ' ':
+            return pre.count(' ') / 4
+        raise ValueError('wrong input: {}'.format(line))
 
     @staticmethod
     def _get_class_name(line):
-        return line.split(' ')[-1].split(':')[0].split('(')[0]
+        return line.split('(')[0].split(':')[0].split(' ')[-1]
 
     @staticmethod
     def _get_parent(line):
@@ -127,11 +189,16 @@ class file_base_manager:
             p.replace(' ', '')
         return params
 
+    def file_info(self, path):
+        return self.file_map[os.path.abspath(path)]
+
+
 class table_manager(file_base_manager):
 
     def __init__(self, mod=None):
         file_base_manager.__init__(self)
         self.current_mod = mod
+        self.mapping_filename = None
 
     def set_current_mod(self, mod):
         """
@@ -140,6 +207,110 @@ class table_manager(file_base_manager):
         :return:
         """
         self.current_mod = mod
+
+    # -----register table--------
+    def register_table(self, table_info):
+        """
+        注册私有表
+        note: 注册后表进入待审核状态
+        :param table_info: [...
+                {
+                    table_name:
+                    sensitivity:
+                    primary_key: []
+                    description:
+                    note:
+                    fields: {
+                        name: {
+                            type:
+                            length:
+                            sensitivity： # 敏感度
+                            description:
+                            note:
+                            nullable:
+                            unique:
+                            default: # 待支持
+                            foreignkey:{
+                                table:,
+                                field:
+                            }
+                        }
+                    }
+                }
+        :return:
+        """
+        # 合法性校验
+        self.check_table_info(table_info)
+        for table in table_info:
+            sensitivity = int(table.get('sensitivity', 0))
+            table_row = Tables(name=table['table_name'], owner_id=self.current_mod.get('id'), status=0, sensitivity=sensitivity)
+            self.session.add(table_row)
+            self.session.commit() # 获取id
+            for field in table['fields']:
+                f_sensitivity = int(table['fields'][field].get('sensitivity', 0))
+                field_row = Fields(name=field, table_id=table_row.id, sensitivity=f_sensitivity)
+                self.session.add(field_row)
+            try:
+                self.session.commit()
+            except:
+                self.session.rollback()
+        self.create_table(table_info)
+
+    def create_table(self, table_info, update=True):
+        """
+        生成私有表
+        TODO：
+            - 文件可用性测试
+            - __init__重复导入校验
+            - 表属性记录
+            - default参数
+            - 注释
+        :param update: 是否更新数据库
+        :param table_info:
+        :return:
+        """
+        # 文件生成
+        # 语句模板
+        tab = '    '
+        import_template = 'from {package} import {statement}\n'
+        class_template = 'class {table_name}(Base):\n'
+        # 文件名hash
+        m = hashlib.md5()
+        m.update(self.current_mod.get('name').encode())
+        self.mapping_filename = m.hexdigest()
+        if not formating_check(self.mapping_filename):
+            self.mapping_filename = '_' + self.mapping_filename
+
+        with open('models/{}.py'.format(self.mapping_filename), 'a+') as f:
+            # import
+            f.write(import_template.format(package='.', statement='Base'))
+            f.write(import_template.format(package='sqlalchemy.types',
+                                           statement='Integer, String, Text, Boolean, PickleType, Date, Time, Unicode, BigInteger, Interval'))
+                                            # 导入了所有常用类型以便直接添加表
+            f.write(import_template.format(package='sqlalchemy', statement='Column, ForeignKey'))
+            f.write('\n')
+            for table in table_info:
+                f.write(class_template.format(table_name=table['table_name']))
+                f.write(tab + "__tablename__ = '{}'\n\n".format(table['table_name']))
+                columns = self.render_column(table)
+                for column in columns:
+                    f.write(tab + column + '\n')
+                f.write('\n')
+
+        with open('models/__init__.py', 'a+') as f:
+            init_s = 'from .{} import * # from module<{}>\n'.format(self.mapping_filename, self.current_mod.get('name'))
+            f.write(init_s)
+        # 数据库更新
+        if update:
+            self.update('module<{}> register table'.format(self.current_mod.get('name')))
+        self.scan_file('models/{}.py'.format(self.mapping_filename)) # 重新扫描文件
+        # 记录文件位置信息
+        for table in table_info:
+            t = self.session.query(Tables).filter_by(name=table['table_name']).first()
+            for i in self.file_info('models/{}.py'.format(self.mapping_filename))['classes']:
+                if i.name == table['table_name']:
+                    t.file_pos = i.to_json()
+        self.session.commit()
 
     def check_table_info(self, table_info):
         """
@@ -224,105 +395,6 @@ class table_manager(file_base_manager):
                             raise ValueError(
                                 'foreign key of field<{}> in table<{}> is not defined'.format(field, table))
 
-
-
-    def register_table(self, table_info):
-        """
-        注册私有表
-        note: 注册后表进入待审核状态
-        :param table_info: [...
-                {
-                    table_name:
-                    sensitivity:
-                    primary_key: []
-                    description:
-                    note:
-                    fields: {
-                        name: {
-                            type:
-                            length:
-                            sensitivity： # 敏感度
-                            description:
-                            note:
-                            nullable:
-                            unique:
-                            default: # 待支持
-                            foreignkey:{
-                                table:,
-                                field:
-                            }
-                        }
-                    }
-                }
-        :return:
-        """
-        # 合法性校验
-        self.check_table_info(table_info)
-        for table in table_info:
-            sensitivity = int(table.get('sensitivity', 0))
-            table_row = Tables(name=table['table_name'], owner_id=self.current_mod.get('id'), status=0, sensitivity=sensitivity)
-            self.session.add(table_row)
-            self.session.commit() # 获取id
-            for field in table['fields']:
-                f_sensitivity = int(table['fields'][field].get('sensitivity', 0))
-                field_row = Fields(name=field, table_id=table_row.id, sensitivity=f_sensitivity)
-                self.session.add(field_row)
-            try:
-                self.session.commit()
-            except:
-                self.session.rollback()
-
-    def create_table(self, table_info, update=True):
-        """
-        生成私有表
-        TODO：
-            - 文件可用性测试
-            - __init__重复导入校验
-            - 表属性记录
-            - default参数
-            - 注释
-        :param update: 是否更新数据库
-        :param table_info:
-        :return:
-        """
-        # 文件生成
-        # 语句模板
-        tab = '    '
-        import_template = 'from {package} import {statement}\n'
-        class_template = 'class {table_name}(Base):\n'
-        # 文件名hash
-        m = hashlib.md5()
-        m.update(self.current_mod.get('name').encode())
-        filename = m.hexdigest()
-        if not formating_check(filename):
-            filename = '_' + filename
-
-        with open('models/{}.py'.format(filename), 'a+') as f:
-            # import
-            f.write(import_template.format(package='.', statement='Base'))
-            f.write(import_template.format(package='sqlalchemy.types',
-                                           statement='Integer, String, Text, Boolean, PickleType, Date, Time, Unicode, BigInteger, Interval'))
-                                            # 导入了所有常用类型以便直接添加表
-            f.write(import_template.format(package='sqlalchemy', statement='Column, ForeignKey'))
-            f.write('\n')
-            for table in table_info:
-                f.write(class_template.format(table_name=table['table_name']))
-                f.write(tab + "__tablename__ = '{}'\n\n".format(table['table_name']))
-                columns = self.render_column(table)
-                for column in columns:
-                    f.write(tab + column + '\n')
-                f.write('\n')
-
-        with open('models/__init__.py', 'a+') as f:
-            init_s = 'from .{} import * # from module<{}>\n'.format(filename, self.get('name'))
-            f.write(init_s)
-        # 数据库更新
-        if update:
-            alembic_cfg = Config('alembic.ini')
-            command.revision(alembic_cfg, 'module<{}> register table'.format(self.get('name')),
-                             autogenerate=True)
-            command.upgrade(alembic_cfg, 'head')
-
     @staticmethod
     def render_column(table):
         """
@@ -367,3 +439,91 @@ class table_manager(file_base_manager):
             column_s = column_template.format(field=field_name, type=type_s, params=param_s)
             columns.append(column_s)
         return columns
+    #---------------------------
+
+    def delete_table(self, table_name, update=True):
+        """
+        删除表
+        :param table_name:
+        :param update:
+        :return:
+        """
+        t = self.session.query(Tables).filter_by(name=table_name).first()
+        if not t:
+            raise ValueError('{0} is not defined'.format(table_name))
+        # 修改映射文件
+        if not t.file_pos:
+            raise ValueError('file_pos is None')
+        pos_info = json.loads(t.file_pos)
+        temp_file_name = '{0}\\{1}.temp'.format(os.path.dirname(pos_info['file']),
+                                             pos_info['file'].split('\\')[-1].split('.')[0])
+        temp_f = open(temp_file_name, 'w', encoding='utf-8')
+        with open(pos_info['file'], 'r', encoding='utf-8') as r_f:
+            line_id = 0
+            for line in r_f:
+                line_id += 1
+                if int(pos_info['begin']) <= line_id <= int(pos_info['end']):
+                    line = ''
+                temp_f.write(line)
+        temp_f.close()
+        os.remove(pos_info['file'])
+        os.renames(temp_file_name, temp_file_name.replace('.temp', '.py'))
+        # 更新Table表Field表
+        table_row = self.session.query(Tables).filter_by(name=table_name, owner_id=self.current_mod.get('id')).first()
+        for field in table_row.fields:
+            self.session.delete(field)
+        self.session.delete(table_row)
+        self.session.commit()
+        # 数据库更新
+        if update:
+            self.update('delete table {0}'.format(table_name))
+        self.scan_file(pos_info['file'])  # 重新扫描文件
+
+    def update(self, msg):
+        """
+        更新数据库
+        :param msg:
+        :return:
+        """
+        # 绝对路径需要写入路径
+        alembic_cfg = Config('C:\\Users\\93214\\Documents\\projects\\python_proj\\IMS\\DataService\\alembic.ini')
+        command.revision(alembic_cfg, msg, autogenerate=True)
+        command.upgrade(alembic_cfg, 'head')
+
+    def _test_teardown(self, table_info):
+        """
+        测试失败时恢复环境
+        :param table_info:
+        :return:
+        """
+        # 删除__init__导入
+        with open('models/__init__.py', 'r') as r_f:
+            w_f = open('models/__init__.temp', 'w')
+            for line in r_f:
+                if self.gene_filename() in line:
+                    line = ''
+                w_f.write(line)
+            w_f.close()
+        os.remove('models/__init__.py')
+        os.renames('models/__init__.temp', 'models/__init__.py')
+        # 删除映射文件
+        os.remove('models/{}.py'.format(self.gene_filename()))
+        # 删除Table Field表
+        for table in table_info:
+            table_row = self.session.query(Tables).filter_by(name=table['table_name'], owner_id=self.current_mod.get('id')).first()
+            for field in table_row.fields:
+                self.session.delete(field)
+            self.session.delete(table_row)
+        self.session.commit()
+        # 恢复alembic版本
+        alembic_cfg = Config('alembic.ini')
+        command.downgrade(alembic_cfg, '26b27c9afbf9')
+
+    def gene_filename(self):
+        m = hashlib.md5()
+        m.update(self.current_mod.get('name').encode())
+        mapping_filename = m.hexdigest()
+        if not formating_check(mapping_filename):
+            mapping_filename = '_' + mapping_filename
+        return mapping_filename
+
