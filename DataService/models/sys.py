@@ -46,6 +46,7 @@ class Tables(Base):
     api_gene = Column(Boolean, default=False)
     note = Column(Text)
     sensitivity = Column(Integer)
+    file_pos = Column(String(256)) # sqlalchemy位置描述json
 
 class Fields(Base):
     __tablename__ = 'fields'
@@ -64,6 +65,8 @@ class SysAPI(Base):
     name = Column(String(64)) # API名
     param_description = Column(String(256)) # json格式参数列表
     status = Column(Integer)
+    # 0 关闭
+    # 1 开放
     sensitivity = Column(Integer) # API敏感度
 
 # log
@@ -120,8 +123,5 @@ class Roles(Base):
     code = Column(Integer, primary_key=True, autoincrement=False) # 二进制位表示
     description = Column(String(64))
 
-
 def create_db():
     Base.metadata.create_all(engine)
-
-
