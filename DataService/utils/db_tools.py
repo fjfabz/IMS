@@ -23,7 +23,23 @@ def init_sys_tables():
                 new_f = Fields(name=f[j][0], table_id=new_t.id, sensitivity=0)
                 session.add(new_f)
                 session.commit()
+    session.close()
 
+def upgrade_sys_table():
+    pass
+
+def all_tables():
+    """
+    返回当前数据库中所有表名
+    :return:
+    """
+    session = get_session()
+    r = session.execute("select TABLE_NAME from information_schema.TABLES where table_schema = 'ims'").fetchall()
+    session.close()
+    a = []
+    for i in range(len(r)):
+        a.append(r[i][0])
+    return a
 
 if __name__ == '__main__':
-    init_sys_tables()
+    print( all_tables())
