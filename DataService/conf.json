@@ -1,11 +1,17 @@
 {
-  "current_mod": "dev",
-  "db": {
-    "dev": {
-      "user": "root",
-      "host": "localhost",
-      "port": 3306,
-      "name": "ims"
-    }
-  }
+    "current_mod": "dev",
+    "working_dir": "C:\\Users\\93214\\Documents\\projects\\python_proj\\IMS\\DataService",
+    "db": {
+        "dev": {
+            "user": "root",
+            "host": "localhost",
+            "port": 3306,
+            "name": "ims"
+        }
+    },
+    "intercept_urls": [
+        "/api/test"
+    ],
+    "restless_predefine_path": "/query_api.py",
+    "query_prefix": "/query"
 }
