@@ -2,7 +2,7 @@ from .models import get_session
 from .models.sys import *
 import datetime
 from functools import wraps
-from flask import request, jsonify
+from flask import request, jsonify, current_app
 from .errors import general_error
 from .utils.utils import *
 import base64
@@ -99,7 +99,8 @@ class module_manager():
         :param table_info:
         :return:
         """
-        manager = table_manager(self)
+        manager = current_app.table_manager
+        manager.set_mod(self)
         manager.register_table(table_info)
 
     def have_query_permission(self, table):

@@ -6,6 +6,7 @@ from DataService.query_api import create_db_api
 from DataService.api_manager import api_manager
 from DataService.utils.config_parser import Config
 from DataService.errors import *
+from DataService.table_manager import table_manager
 
 import os
 
@@ -19,8 +20,8 @@ os.chdir(config['working_dir'])
 # 设置全局db_session
 app.db_session = get_session()
 
-# 渲染query_api.py
-
+# 设置全局table_manager
+app.table_manager = table_manager()
 
 # flask-restless
 Session = sessionmaker(autocommit=False, autoflush=False, bind=engine)
