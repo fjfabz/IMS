@@ -19,13 +19,18 @@ def _auto_update(func):
     return wrapper
 
 class Config:
-    def __init__(self, config_path='conf.json', auto_update=True):
+    def __init__(self, config_path='conf.json', auto_update=True, section=None):
         self.config_path = self._relative_to_abs(config_path)
         self.auto_update = auto_update
         # print(path)
         with open(self.config_path, 'r') as f:
             self.config = json.load(f) # 此处不处理IOError
-            self._config_bak = copy.deepcopy(self.config) # 做深拷贝作为修改快照
+        if section:
+            try:
+                self.config = self.config[section]
+            except KeyError:
+                raise ValueError('section {} is not defined'.format(section))
+        self._config_bak = copy.deepcopy(self.config)  # 做深拷贝作为修改快照
 
     @staticmethod
     def _relative_to_abs(path):
@@ -46,3 +51,4 @@ class Config:
 
     def __getitem__(self, item):
         return self.config[item]
+

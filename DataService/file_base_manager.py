@@ -104,7 +104,8 @@ class file_scanner:
         self.name = name
         self.begin = None
         self.end = None
-        self.file = os.path.abspath(file_path)
+        self.file_path = os.path.abspath(file_path)
+        self.file_name = os.path.split(self.file_path)[-1]
         self._content = ''
         self._content_list = []
         self.layer = layer

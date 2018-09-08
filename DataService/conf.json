@@ -9,9 +9,11 @@
             "name": "ims"
         }
     },
-    "intercept_urls": [
-        "/api/test"
-    ],
-    "restless_predefine_path": "/query_api.py",
-    "query_prefix": "/query"
+    "api": {
+        "intercept_urls": [
+            "/api/test"
+        ],
+        "restless_predefine_path": "/query_api.py",
+        "query_prefix": "/query"
+    }
 }

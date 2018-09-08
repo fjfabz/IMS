@@ -1,9 +1,20 @@
 import hashlib
 from alembic.config import Config
 from alembic import command
+from flask import current_app
+import sys
+import os
+import importlib
 
-from .file_base_manager import file_base_manager
+from .file_base_manager import file_base_manager, file_scanner
 from .models import *
+
+class table_Context:
+    def __init__(self, file_info:file_scanner, table_info):
+        self.file_info = file_info
+        self.table_info = table_info
+        # 导入模型类
+        self.model = importlib.import_module('DateService.models.{0}.{1}'.format(self.file_info.file_name, self.file_info.name))
 
 class table_manager(file_base_manager):
 
@@ -116,13 +127,25 @@ class table_manager(file_base_manager):
         if update:
             self.update('module<{}> register table'.format(self.current_mod.get('name')))
         self.scan_file('models/{}.py'.format(self.mapping_filename)) # 重新扫描文件
-        # 记录文件位置信息
+        # file_pos and api_info
         for table in table_info:
             t = self.session.query(Tables).filter_by(name=table['table_name']).first()
             for i in self.file_info('models/{}.py'.format(self.mapping_filename))['classes']:
+                # i: class_in_file对象 模型定义文件中的类
                 if i.name == table['table_name']:
                     t.file_pos = i.to_json()
+                    # 记录table_context
+                    if current_app.__getattribute__('table_context'):
+                        current_app.table_context.append(table_Context(i, table))
+                    else:
+                        current_app.table_context = [table_Context(i, table)]
+                    # api_info
+                    api_info = {
+                        'model_name':
+                    }
+
         self.session.commit()
+        current_app.api_manager.register_query_api()
 
     def check_table_info(self, table_info):
         """

@@ -51,6 +51,18 @@ def index():
     #     data['tables'][field.table].append(f)
     return render_template('manager.html', data=data)
 
+@manager.route('/modify/table', methods=['POST'])
+def modify():
+    """
+    {
+        table:
+        columns:{
+            
+        }
+    }
+    :return:
+    """
+
 """
 data = {
     tag_list: [

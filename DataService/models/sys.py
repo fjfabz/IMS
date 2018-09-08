@@ -43,10 +43,10 @@ class Tables(Base):
     # 0 未审核
     # 1 已审核
     # 2 修改未审核
-    api_gene = Column(Boolean, default=False)
     note = Column(Text)
     sensitivity = Column(Integer)
-    file_pos = Column(String(256)) # sqlalchemy位置描述json
+    file_pos = Column(String(256)) # sqlalchemy位置描述 type: json
+    api_info = Column(String(256)) # api信息
 
 class Fields(Base):
     __tablename__ = 'fields'

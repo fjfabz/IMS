@@ -6,7 +6,7 @@ from flask import request, jsonify
 from .errors import general_error
 from .utils.utils import *
 import base64
-from .file_base_manager import table_manager
+from .table_manager import table_manager
 
 """
  TODO:
@@ -158,21 +158,6 @@ class module_manager():
             if sens <= self.get('permission'):
                 field_l.append(field.name)
         return field_l
-
-    def _register_table_test_teardown(self, table_info):
-        """
-        register table测试完成后回滚
-        :param table_info:
-        :return:
-        """
-        for table in table_info:
-            table_row = self.session.query(Tables).filter_by(name=table['table_name'], owner_id=self.get('id')).first()
-            self.session.delete(table_row)
-            for field in table['fields']:
-                field_row = self.session.query(Fields).filter_by(name=field, table_id=table_row.id)
-                self.session.delete(field_row)
-
-        self.session.commit()
 
     def create_api(self, table_name, methods):
         """

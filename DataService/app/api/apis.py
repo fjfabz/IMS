@@ -1,5 +1,5 @@
 from . import api
-from flask import request, jsonify
+from flask import request, jsonify, current_app
 from DataService.module_manager import module_manager, signature_verify
 from DataService.errors import *
 from DataService.utils.utils import *
@@ -60,9 +60,12 @@ def module_pubkey(id):
 
 
 @api.route('/test', methods=['GET', 'POST'])
-@signature_verify
 def test_():
     return jsonify({
         'code': 200,
         'msg': 'test success',
     })
+
+@api.route('/close_test')
+def close_test():
+    current_app.api_manager.close_api('/api/test')
