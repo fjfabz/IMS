@@ -10,11 +10,11 @@ from .file_base_manager import file_base_manager, file_scanner
 from .models import *
 
 class table_Context:
-    def __init__(self, file_info:file_scanner, table_info):
+    def __init__(self, file_info:file_scanner, table_info=None):
         self.file_info = file_info
         self.table_info = table_info
         # 导入模型类
-        self.model = importlib.import_module('DateService.models.{0}.{1}'.format(self.file_info.file_name, self.file_info.name))
+        self.module = importlib.import_module('DateService.models.{0}.{1}'.format(self.file_info.file_name, self.file_info.name))
 
 class table_manager(file_base_manager):
 
@@ -22,6 +22,9 @@ class table_manager(file_base_manager):
         file_base_manager.__init__(self)
         self.current_mod = mod
         self.mapping_filename = None
+
+    def set_mod(self, mod):
+        self.current_mod = mod
 
     def set_current_mod(self, mod):
         """
@@ -139,10 +142,7 @@ class table_manager(file_base_manager):
                         current_app.table_context.append(table_Context(i, table))
                     else:
                         current_app.table_context = [table_Context(i, table)]
-                    # api_info
-                    api_info = {
-                        'model_name':
-                    }
+
 
         self.session.commit()
         current_app.api_manager.register_query_api()
@@ -361,3 +361,4 @@ class table_manager(file_base_manager):
         if not formating_check(mapping_filename):
             mapping_filename = '_' + mapping_filename
         return mapping_filename
+

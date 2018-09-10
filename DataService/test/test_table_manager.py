@@ -60,11 +60,11 @@ def table_test_fixture():
 
 
 
-
+@pytest.mark.usefixtures("table_test_fixture")
 @pytest.mark.parametrize('table_info', [
     table_info1,
 ])
-def test_register_table(table_test_fixture, table_info):
+def test_register_table(table_info):
     # 测试要求结果：
     # Table Field表更新
     # 新表生成(新表生成说明数据库已经正常迁移，映射文件正常)
@@ -83,11 +83,11 @@ def test_register_table(table_test_fixture, table_info):
             field_row = session.query(Fields).filter_by(name=field, table_id=table_row.id).first()
             assert field_row is not None
 
-
+@pytest.mark.usefixtures("table_test_fixture")
 @pytest.mark.parametrize('table_info', [
     table_info1,
 ])
-def test_delete_table(table_test_fixture, table_info):
+def test_delete_table(table_info):
     # 测试结果要求：
     # Table Field表更新
     # 旧表删除

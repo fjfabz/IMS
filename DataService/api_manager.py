@@ -4,13 +4,50 @@ from mako.template import Template
 import json
 
 from . import postprocessors_dict, preprocessors_dict
-from .file_base_manager import file_base_manager
+from .file_base_manager import file_base_manager, file_scanner
 from .models import get_session, Tables
 from .table_manager import table_Context
 
 predefine_params = ['methods', 'url_prefix', 'allow_patch_many']
 
-def query_api_info(model_name, methods=[], url_prefix, allow_patch_many):
+class api_info:
+    def __init__(self, model_name, file_info: file_scanner, methods=None, url_prefix='/query', allow_patch_many=True, **kwargs):
+        self.module_name = model_name
+        self.table_context_ = table_Context(file_info)
+        self.methods = methods if not methods else ['GET', 'POST', 'PATCH', 'DELETE']
+        self.url_prefix = url_prefix
+        self.allow_patch_many = allow_patch_many
+        for key in kwargs:
+            self.__setattr__(key, kwargs[key])
+
+    def loads(self, info):
+        """
+        加载json配置
+        :param info:
+        :return:
+        """
+        info = json.loads(info)
+        for attr in self.__dir__():
+            try:
+                self.__setattr__(attr, info[attr])
+            except KeyError:
+                continue
+
+    def to_json(self):
+        j = {}
+        attrs = self.__dir__()
+        for attr in attrs:
+            if attr[:1] == '_' or attr[-1:] == '_':
+                continue
+            j[attr] = self.__getattribute__(attr)
+        return json.dumps(j)
+
+    def __setitem__(self, key, value):
+        self.__setattr__(key, value)
+
+    def __getitem__(self, item):
+        self.__getattribute__(item)
+
 
 
 def init_from_db():
@@ -20,8 +57,8 @@ def init_from_db():
     session = get_session()
     tables = session.query(Tables).all()
     for table in tables:
-        pos_info = json.loads(table.file_pos)
-        api_info = json.loads(table.api_info)
+        pass
+
 
 
 
@@ -36,6 +73,17 @@ class api_manager(file_base_manager):
         if app:
             self.api_config = app.service_config['api']
             self.init_app(app)
+
+    @staticmethod
+    def load_api(restless_manager, info: api_info):
+        restless_manager.create_api(
+            info.table_context_.module,
+            methods=info.methods,
+            url_prefix=info.url_prefix,
+            preprocessors=preprocessors_dict,
+            postprocessors=postprocessors_dict,
+            allow_patch_many=info.allow_patch_many
+        )
 
     def init_app(self, app):
         app.api_manager = self
