@@ -46,7 +46,6 @@ class Tables(Base):
     note = Column(Text)
     sensitivity = Column(Integer)
     file_pos = Column(String(256)) # sqlalchemy位置描述 type: json
-    api_info = Column(String(256)) # api信息
 
 class Fields(Base):
     __tablename__ = 'fields'

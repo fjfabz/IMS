@@ -1,6 +1,8 @@
 import sys
+import os
 sys.path.append('../')
 from DataService.models import get_session, Tables, Fields, ModuleReg
+from DataService.table_manager import table_manager
 
 def init_sys_tables():
     """
@@ -41,5 +43,24 @@ def all_tables():
         a.append(r[i][0])
     return a
 
+def gene_file_pos():
+    """
+    生成当前Tables file_pos
+    :return:
+    """
+    session = get_session()
+    tables = session.query(Tables).all()
+    t_manager = table_manager()
+    for table in tables:
+        if table.name in ['alembic_version']:
+            continue
+        cl = t_manager.get_table_info(table.name)
+        if cl:
+            table.file_pos = cl.to_json()
+            session.commit()
+        else:
+            raise ValueError('{} do not match'.format(table.name))
+
 if __name__ == '__main__':
-    print( all_tables())
+    os.chdir('..')
+    gene_file_pos()

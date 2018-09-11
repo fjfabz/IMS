@@ -4,7 +4,7 @@ from mako.template import Template
 import json
 
 from . import postprocessors_dict, preprocessors_dict
-from .file_base_manager import file_base_manager, file_scanner
+from .file_base_manager import file_base_manager, file_scanner, class_in_file
 from .models import get_session, Tables
 from .table_manager import table_Context
 
@@ -14,7 +14,8 @@ class api_info:
     def __init__(self, model_name, file_info: file_scanner, methods=None, url_prefix='/query', allow_patch_many=True, **kwargs):
         self.module_name = model_name
         self.table_context_ = table_Context(file_info)
-        self.methods = methods if not methods else ['GET', 'POST', 'PATCH', 'DELETE']
+        self.module = self.table_context_.class_
+        self.methods = methods if  methods else ['GET', 'POST', 'PATCH', 'DELETE']
         self.url_prefix = url_prefix
         self.allow_patch_many = allow_patch_many
         for key in kwargs:
@@ -49,21 +50,6 @@ class api_info:
         self.__getattribute__(item)
 
 
-
-def init_from_db():
-    """
-    读取表数据生成query_api.py文件
-    """
-    session = get_session()
-    tables = session.query(Tables).all()
-    for table in tables:
-        pass
-
-
-
-
-
-
 class api_manager(file_base_manager):
     def __init__(self, app: Flask):
         file_base_manager.__init__(self)
@@ -75,9 +61,25 @@ class api_manager(file_base_manager):
             self.init_app(app)
 
     @staticmethod
+    def init_api_from_db(restless_manager):
+        """
+        根据Tables数据初始化query_api
+        """
+        session = get_session()
+        tables = session.query(Tables).all()
+        for table in tables:
+            if table.file_pos is None:
+                continue
+            file_pos = json.loads(table.file_pos)
+            cl = class_in_file(file_pos['name'])
+            cl.load_from_json(file_pos)
+            info = api_info(cl.name, cl)
+            api_manager.load_api(restless_manager, info)
+
+    @staticmethod
     def load_api(restless_manager, info: api_info):
         restless_manager.create_api(
-            info.table_context_.module,
+            info.table_context_.class_,
             methods=info.methods,
             url_prefix=info.url_prefix,
             preprocessors=preprocessors_dict,
@@ -116,14 +118,6 @@ class api_manager(file_base_manager):
                 postprocessors=postprocessors_dict,
                 allow_patch_many=True
             )
-
-    def dump_query_api(self):
-        apis = []
-        for api in self.query_api:
-            apis.append(api.api_info())
-        with open(self.api_config['restless_predefine_path'], 'w') as f:
-            f.write(Template(filename='/templates/query_api.mako').render(apis=apis))
-
 
 class API:
     """
@@ -171,15 +165,6 @@ class query_api(API):
         self.postprocessors = postprocessors if postprocessors else postprocessors_dict
         self.allow_patch_many = allow_patch_many
         self.predefine_params = ['methods', 'url_prefix', 'allow_patch_many']
-
-    def dump(self):
-        """
-        写入接口预定义文件
-        :return:
-        """
-        with open(self.config['restless_predefine_path'], 'w') as f:
-            f.write(Template(filename='/templates/query_api.mako').render())
-
 
     def api_info(self):
         """
