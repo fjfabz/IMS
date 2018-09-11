@@ -10,26 +10,35 @@ from .file_base_manager import file_base_manager, file_scanner
 from .models import *
 
 class table_Context:
+    """
+    table上下文
+    在处理表请求时用于传递表相关信息，特别是从/models中import的sqlalchemy module对象
+    """
     def __init__(self, file_info:file_scanner, table_info=None):
+        """
+        :param file_info: file_scanner对象
+        :param table_info: 注册表使用的table_info参数
+        """
         self.file_info = file_info
         self.table_info = table_info
         # 导入模型类
         self.module = importlib.import_module('DateService.models.{0}.{1}'.format(self.file_info.file_name, self.file_info.name))
 
 class table_manager(file_base_manager):
-
+    """
+    表管理器。在初始化服务时被添加到app对象中
+    处理表相关请求时从current_app获取该对象完成相关操作.
+    使用前需要使用`set_mod`方法设置module.
+    """
     def __init__(self, mod=None):
         file_base_manager.__init__(self)
         self.current_mod = mod
         self.mapping_filename = None
 
     def set_mod(self, mod):
-        self.current_mod = mod
-
-    def set_current_mod(self, mod):
         """
-        设置当前模块管理器
-        :param mod:
+        设置管理器当前处理的module
+        :param mod: module_manager对象
         :return:
         """
         self.current_mod = mod
@@ -38,32 +47,41 @@ class table_manager(file_base_manager):
     def register_table(self, table_info):
         """
         注册私有表
-        note: 注册后表进入待审核状态
-        :param table_info: [...
-                {
-                    table_name:
-                    sensitivity:
-                    primary_key: []
-                    description:
-                    note:
-                    fields: {
-                        name: {
-                            type:
-                            length:
-                            sensitivity： # 敏感度
-                            description:
-                            note:
-                            nullable:
-                            unique:
-                            default: # 待支持
-                            foreignkey:{
-                                table:,
-                                field:
-                            }
+        业务逻辑:
+            - table_info合法性校验
+            - 对table_info中每个表:
+                - 更新Tables表数据
+                - 更新Fields表数据
+                - 调用`create_table()`方法创建表
+
+        :param table_info: 注册表数据. 格式如下:
+        ```
+        [...
+            {
+                table_name:
+                sensitivity:
+                primary_key: []
+                description:
+                note:
+                fields: {
+                    name: {
+                        type:
+                        length:
+                        sensitivity： # 敏感度
+                        description:
+                        note:
+                        nullable:
+                        unique:
+                        default: # 待支持
+                        foreignkey:{
+                            table:,
+                            field:
                         }
                     }
                 }
-        :return:
+            }
+        ...]
+        ```
         """
         # 合法性校验
         self.check_table_info(table_info)
@@ -85,6 +103,14 @@ class table_manager(file_base_manager):
     def create_table(self, table_info, update=True):
         """
         生成私有表
+        文件名使用module名称的md5值. 由于需要在__init__.py中导入该文件, 对数字开头的值加`_`.
+        业务逻辑:
+            - 生成文件名并校验
+            - 写入模型文件
+            - 更新__init__.py
+            - 更新alembic
+            - 更新Tables表file_pos信息
+            - 向current_app添加table_Context
         TODO：
             - 文件可用性测试
             - __init__重复导入校验
@@ -150,6 +176,14 @@ class table_manager(file_base_manager):
     def check_table_info(self, table_info):
         """
         检查表信息正确性
+        验证逻辑:
+            - 表名查重
+            - sensitivity值有效
+            - primary_key存在
+            - field名称有效
+            - field type有效
+            - field length有效
+            - foreign_key 有效
         :param table_info:
         :return:
         """
