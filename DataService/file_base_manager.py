@@ -40,6 +40,7 @@ class file_base_manager:
                             current_obj.belong_to(current_handle)
                         # 后续同级定义
                         if current_handle.layer == current_obj.layer \
+                            and current_handle.layer != 0 \
                             and current_handle.root():
                             current_obj.belong_to(current_handle.root())
                             current_handle.end_at(line_id - 1)
@@ -167,6 +168,17 @@ class file_scanner:
 
     def add_method(self, method):
         self.inner_methods.append(method)
+
+    def load_from_json(self, j):
+        """
+        从json中加载信息
+        用于从数据库获取file_pos数据初始化table_Context
+        :param j: Tables.file_pos
+        """
+        if type(j) is str:
+            j = json.loads(j)
+        for attr in j:
+            self.__setattr__(attr, j[attr])
 
 class class_in_file(file_scanner):
     """
