@@ -6,7 +6,7 @@ import sys
 import os
 import importlib
 
-from .file_base_manager import file_base_manager, file_scanner
+from .file_base_manager import file_base_manager, file_scanner, class_in_file
 from .models import *
 
 class table_Context:
@@ -14,7 +14,8 @@ class table_Context:
         self.file_info = file_info
         self.table_info = table_info
         # 导入模型类
-        self.module = importlib.import_module('DateService.models.{0}.{1}'.format(self.file_info.file_name, self.file_info.name))
+        module = importlib.import_module('.models.{0}'.format(self.file_info.file_name.split('.')[0]), 'DataService')
+        self.class_ = getattr(module, self.file_info.name)
 
 class table_manager(file_base_manager):
 
@@ -361,4 +362,22 @@ class table_manager(file_base_manager):
         if not formating_check(mapping_filename):
             mapping_filename = '_' + mapping_filename
         return mapping_filename
+
+    #---------------------------
+
+    def get_table_info(self, name):
+        """
+        返回相应模型的class_in_file对象
+        需要生成的模型都来自sys部分, 暂时不考虑其他模块的生成
+        :param name:
+        :return:
+        """
+        classes_info = self.scan_file(os.path.abspath('models/sys.py'))['classes']
+        for cl in classes_info:
+            module = importlib.import_module('.models.{0}'.format(cl.file_name.split('.')[0]), 'DataService')
+            if getattr(module, cl.name).__tablename__.lower() == name.lower():
+                return cl
+        return None
+
+
 

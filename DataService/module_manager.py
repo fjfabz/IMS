@@ -160,33 +160,6 @@ class module_manager():
                 field_l.append(field.name)
         return field_l
 
-    def create_api(self, table_name, methods):
-        """
-        在query_api.py中生成api语句
-        :param table_name:
-        :param methods:
-        :return:
-        """
-        table_info = self.session.query(Tables).filter_by(name=table_name).first()
-        if table_info is None:
-            raise ValueError('table<{}> is not existed',format(table_name))
-        # if table_info.api_gene is True:
-        #   return
-        statement = """
-    from DataService.models import {table}
-    api_manager.create_api(
-        {table},
-        methods={methods},
-        url_prefix='/query',
-        preprocessors=preprocessors_dict,
-        postprocessors=postprocessors_dict,
-        allow_patch_many=True
-    )"""
-        with open('query_api.py', 'a+') as f:
-            f.write(statement.format(table=table_name, methods=str(methods)))
-
-
-
 def signature_verify(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
