@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>创建</title>
+        <meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0, user-scalable=no"> <!--禁止浏览器缩放-->
+        <script src="https://cdn.jsdelivr.net/npm/vue"></script>
+
+        <link rel="stylesheet" type="text/css" href="http://unpkg.com/iview/dist/styles/iview.css">
+        <script type="text/javascript" src="http://vuejs.org/js/vue.min.js"></script>
+        <script type="text/javascript" src="http://unpkg.com/iview/dist/iview.min.js"></script>
+    
+        <link rel="stylesheet" type="text/css" media="screen" href="main.css" />
+        <script src="main.js"></script>
+
+        <style>
+            .bar{
+                text-align: center; 
+                padding-top: 15px;                             
+                width: 360px;
+                height: 55px; 
+                background: #35a0de;                    
+            }
+            .bar img{
+                position: absolute;
+                left: 15px;
+                top: 15px;
+            }
+            .bar p{
+                font-size: 18px; 
+                color: #000000;
+            }
+            .data_collection #name{
+                position: absolute;
+                left:30px;
+                top:68px;
+                font-size: 16px
+
+            }
+            .data_collection #mission_name{
+                position: absolute;
+                left: 40px;
+                top: 102px;
+                width: 280px;
+                height: 30px;
+            }
+            .mission_issue hr{               
+                position: absolute;
+                left: 30px;
+                top: 141px;
+                width: 300px;
+                background-color: #35a0de;
+            }
+            .mission_issue #issue_date{
+                position: absolute;
+                left: 30px;
+                top: 157px;
+                font-size: 16px;
+            }
+            .mission_issue #issue_year{
+                position: absolute;
+                left: 30px;
+                top: 197px;
+                width: 100px;
+                height: 30px;
+                border-radius: 5px;
+
+            }
+            .mission_issue #issue_month{
+                position: absolute;
+                left: 130px;
+                top: 197px;
+                width: 100px;
+                height: 30px;
+                border-radius: 5px;
+            }
+            .mission_issue #issue_day{
+                position: absolute;
+                left: 230px;
+                top: 197px;
+                width: 100px;
+                height: 30px;
+                border-radius: 5px;
+            }
+            .mission_ddl hr{               
+                position: absolute;
+                left: 30px;
+                top: 237px;
+                width: 300px;
+                background-color: #35a0de;
+            }
+            .mission_ddl #ddl_date{
+                position: absolute;
+                left: 30px;
+                top: 252px;
+                font-size: 16px;
+            }
+            .mission_ddl #ddl_year{
+                position: absolute;
+                left: 30px;
+                top: 290px;
+                width: 100px;
+                height: 30px;
+                border-radius: 5px;
+
+            }
+            .mission_ddl #ddl_month{
+                position: absolute;
+                left: 130px;
+                top: 290px;
+                width: 100px;
+                height: 30px;
+                border-radius: 5px;
+            }
+            .mission_ddl #ddl_day{
+                position: absolute;
+                left: 230px;
+                top: 290px;
+                width: 100px;
+                height: 30px;
+                border-radius: 5px;
+            }
+        
+        
+        </style>
+    </head>
+    <body>
+        <div class="bar">
+            <p>创建</p>
+            <img id="back" src="F:\HFUT\project\stu_info_MS\IMS\DataCollection\icons\back.png" width="22px" height="22px" alt="back">
+        </div>
+        <div class="data_collection">
+            <form name="mission_data">
+                <p id="name">名称</p>
+                <input id="mission_name" type="text" name="mission_name" value="请输入任务名称">
+                
+                
+                <div class="mission_issue">
+                        <hr>
+                        <p id="issue_date">发布日期</p>
+                        <select id="issue_year" name="issue_date_year">
+                                <option value="2018">2018</option>
+                                <option value="2019">2019</option>
+                                <option value="2020">2020</option>
+                        </select>
+                        <select id="issue_month" name="issue_date_month">
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                                <option value="4">4</option>
+                                <option value="5">5</option>
+                                <option value="6">6</option>
+                                <option value="7">7</option>
+                                <option value="8">8</option>
+                                <option value="9">9</option>
+                                <option value="10">10</option>
+                                <option value="11">11</option>
+                                <option value="12">12</option>
+                        </select>
+                        <select id="issue_day" name="issue_date_day">
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                                <option value="4">4</option>
+                                <option value="5">5</option>
+                                <option value="6">6</option>
+                                <option value="7">7</option>
+                                <option value="8">8</option>
+                                <option value="9">9</option>
+                                <option value="10">10</option>
+                                <option value="11">11</option>
+                                <option value="12">12</option>
+                                <option value="13">13</option>
+                                <option value="14">14</option>
+                                <option value="15">15</option>
+                                <option value="16">16</option>
+                                <option value="17">17</option>
+                                <option value="18">18</option>
+                                <option value="19">19</option>
+                                <option value="20">20</option>
+                                <option value="21">21</option>
+                                <option value="22">22</option>
+                                <option value="23">23</option>
+                                <option value="24">24</option>
+                                <option value="25">25</option>
+                                <option value="26">26</option>
+                                <option value="27">27</option>
+                                <option value="28">28</option>
+                                <option value="29">29</option>
+                                <option value="30">30</option>
+                                <option value="31">31</option>
+                        </select>
+                </div>
+                
+                <div class="mission_ddl">
+                        <hr>
+                        <p id="ddl_date">截止日期</p>
+                        <select id="ddl_year" name="ddl_date_year">
+                                <option value="2018">2018</option>
+                                <option value="2019">2019</option>
+                                <option value="2020">2020</option>
+                        </select>
+                        <select id="ddl_month" name="ddl_date_month">
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                                <option value="4">4</option>
+                                <option value="5">5</option>
+                                <option value="6">6</option>
+                                <option value="7">7</option>
+                                <option value="8">8</option>
+                                <option value="9">9</option>
+                                <option value="10">10</option>
+                                <option value="11">11</option>
+                                <option value="12">12</option>
+                        </select>
+                        <select id="ddl_day" name="ddl_date_day">
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                                <option value="4">4</option>
+                                <option value="5">5</option>
+                                <option value="6">6</option>
+                                <option value="7">7</option>
+                                <option value="8">8</option>
+                                <option value="9">9</option>
+                                <option value="10">10</option>
+                                <option value="11">11</option>
+                                <option value="12">12</option>
+                                <option value="13">13</option>
+                                <option value="14">14</option>
+                                <option value="15">15</option>
+                                <option value="16">16</option>
+                                <option value="17">17</option>
+                                <option value="18">18</option>
+                                <option value="19">19</option>
+                                <option value="20">20</option>
+                                <option value="21">21</option>
+                                <option value="22">22</option>
+                                <option value="23">23</option>
+                                <option value="24">24</option>
+                                <option value="25">25</option>
+                                <option value="26">26</option>
+                                <option value="27">27</option>
+                                <option value="28">28</option>
+                                <option value="29">29</option>
+                                <option value="30">30</option>
+                                <option value="31">31</option>
+                        </select>
+
+
+                </div>
+                
+                
+            </form>
+            
+          
+                    
+        </div>
+
+    </body>
+</html>

@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>数据收集</title>
+        <meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0, user-scalable=no"> <!--禁止浏览器缩放-->
+        <script src="https://cdn.jsdelivr.net/npm/vue"></script>
+
+        <link rel="stylesheet" type="text/css" href="http://unpkg.com/iview/dist/styles/iview.css">
+        <script type="text/javascript" src="http://vuejs.org/js/vue.min.js"></script>
+        <script type="text/javascript" src="http://unpkg.com/iview/dist/iview.min.js"></script>
+        <style>
+            .bar{
+                text-align: center; 
+                padding-top: 15px;               
+                width: 360px;
+                height: 55px; 
+                background: #35a0de;                      
+            }
+            .bar img{
+                position: absolute;
+                left: 15px;
+                top: 15px;
+            }
+            .bar p{
+                font-size: 18px; 
+                color: #000000;
+            }
+ 
+            .block1{
+                position: absolute;
+                z-index: -1;                
+                left: 81px;
+                top: 127px;
+                width: 199px;
+                height: 130px;
+                border-radius: 10px;
+                border: 1 solid #bababa;
+                background: #35a0de;               
+                opacity: 0.3;
+                box-shadow: 10px 10px 10px;
+            }
+            .creat img{
+                position:absolute;
+                left: 150px;
+                top: 147px;
+            }
+            .creat p{
+                position: absolute;
+                left: 163px;
+                top: 218px;
+                font-size: 14px;
+            }
+            .block2{
+                position: absolute;
+                z-index: -1;               
+                left: 81px;
+                top: 345px;
+                width: 199px;
+                height: 130px;
+                border-radius: 10px;
+                border: 1 solid #bababa;
+                background: #35a0de;               
+                opacity: 0.3;
+                box-shadow: 10px 10px 10px;
+                               
+                
+            }
+            .check img{
+                position:absolute;
+                left: 150px;
+                top: 366px;
+            }
+            .check p{
+                position: absolute;
+                left: 163px;
+                top: 440px;
+                font-size: 14px;
+            }
+                    
+        </style>
+    </head>
+    
+    <body>
+        <div class="bar">
+            <p>数据收集</p>
+            <img id="back" src="F:\HFUT\project\stu_info_MS\IMS\DataCollection\icons\back.png" width="22px" height="22px" alt="back">
+        </div>
+        <div class="creat">
+                <div class="block1"></div>
+                <img src="F:\HFUT\project\stu_info_MS\IMS\DataCollection\icons\creat.png" width="60" height="60" alt="无法加载图片">
+                <p>创建</p>
+        </div>
+        <div class="check">
+            <div class="block2"></div>
+            <img  src="F:\HFUT\project\stu_info_MS\IMS\DataCollection\icons\check.png" width="60px" height="60px" alt="无法加载图片">
+            <p>查看</p>
+        </div>
+    
+    </body>
+</html>
+
