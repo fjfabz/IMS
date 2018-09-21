@@ -11,6 +11,10 @@ from .table_manager import table_Context
 predefine_params = ['methods', 'url_prefix', 'allow_patch_many']
 
 class api_info:
+    """
+    根据映射文件记录query_api相关信息
+    用于初始化接口和接口管理
+    """
     def __init__(self, model_name, file_info: file_scanner, methods=None, url_prefix='/query', allow_patch_many=True, **kwargs):
         self.module_name = model_name
         self.table_context_ = table_Context(file_info)
@@ -49,7 +53,6 @@ class api_info:
     def __getitem__(self, item):
         self.__getattribute__(item)
 
-
 class api_manager(file_base_manager):
     def __init__(self, app: Flask):
         file_base_manager.__init__(self)
@@ -78,6 +81,13 @@ class api_manager(file_base_manager):
 
     @staticmethod
     def load_api(restless_manager, info: api_info):
+        """
+        根据传入的api_info对象加载api
+        由于需要在api_manager对象初始化之前调用该方法，restless_manager需要作为参数传入
+        :param restless_manager:
+        :param info:
+        :return:
+        """
         restless_manager.create_api(
             info.table_context_.class_,
             methods=info.methods,

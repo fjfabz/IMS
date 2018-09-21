@@ -8,6 +8,7 @@ import importlib
 
 from .file_base_manager import file_base_manager, file_scanner, class_in_file
 from .models import *
+from .api_manager import api_info
 
 class table_Context:
     """
@@ -169,6 +170,7 @@ class table_manager(file_base_manager):
                         current_app.table_context.append(table_Context(i, table))
                     else:
                         current_app.table_context = [table_Context(i, table)]
+
 
 
         self.session.commit()
