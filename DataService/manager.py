@@ -9,40 +9,48 @@ from DataService.table_manager import table_manager
 
 import os
 
-app = Flask(__name__)
-config = Config('conf.json')
-app.service_config = config
+def create_app(mode):
 
-# 切换工作目录
-os.chdir(config['working_dir'])
+    app = Flask(__name__)
+    config = Config('conf.json')
+    app.config['current_mod'] = mode
+    app.service_config = config
 
-# 设置全局db_session
-app.db_session = get_session()
+    # 切换工作目录
+    os.chdir(config['working_dir'])
 
-# 设置全局table_manager
-app.table_manager = table_manager()
+    # 设置全局db_session
+    app.db_session = get_session()
 
-# flask-restless
-Session = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-mysession = scoped_session(Session)
-restless_manager = APIManager(app, session=mysession) # 全局preprocessors postprocessors无效 原因不明
-app.restless_manager = restless_manager
-api_manager.init_api_from_db(restless_manager)
+    # 设置全局table_manager
+    app.table_manager = table_manager()
 
-# url屏蔽
-@app.before_request
-def intercept():
-    if request.path in app.service_config['api']['intercept_urls']:
-        return general_error(403, 'request url is intercepted')
+    # flask-restless
+    Session = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    mysession = scoped_session(Session)
+    restless_manager = APIManager(app, session=mysession) # 全局preprocessors postprocessors无效 原因不明
+    app.restless_manager = restless_manager
+    api_manager.init_api_from_db(restless_manager)
 
-from DataService.app.api import api
-app.register_blueprint(api, url_prefix='/api')
 
-# api_manager
-sys_api_manager = api_manager(app)
+    # url屏蔽
+    @app.before_request
+    def intercept():
+        if request.path in app.service_config['api']['intercept_urls']:
+            return general_error(403, 'request url is intercepted')
 
-from DataService.app.manager import manager
-app.register_blueprint(manager, url_prefix='/manager')
+    from DataService.app.api import api
+    app.register_blueprint(api, url_prefix='/api')
+
+    # 设置全局api_manager
+    sys_api_manager = api_manager(app)
+    app.api_manager = sys_api_manager
+
+    from DataService.app.manager import manager
+    app.register_blueprint(manager, url_prefix='/manager')
+
+    return app
 
 if __name__ == '__main__':
+    app = create_app('test')
     app.run(port=8080, debug=True)

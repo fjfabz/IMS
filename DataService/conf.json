@@ -1,12 +1,18 @@
 {
-    "current_mod": "dev",
+    "current_mod": "test",
     "working_dir": "C:\\Users\\93214\\Documents\\projects\\python_proj\\IMS\\DataService",
     "db": {
         "dev": {
             "user": "root",
             "host": "localhost",
             "port": 3306,
-            "name": "ims"
+            "db_name": "ims"
+        },
+        "test": {
+            "user": "root",
+            "host": "localhost",
+            "port": 3306,
+            "db_name": "ims_test"
         }
     },
     "api": {
