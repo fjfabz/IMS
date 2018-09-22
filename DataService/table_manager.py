@@ -8,22 +8,7 @@ import importlib
 
 from .file_base_manager import file_base_manager, file_scanner, class_in_file
 from .models import *
-
-class table_Context:
-    """
-    table上下文
-    在处理表请求时用于传递表相关信息，特别是从/models中import的sqlalchemy module对象
-    """
-    def __init__(self, file_info:file_scanner, table_info=None):
-        """
-        :param file_info: file_scanner对象
-        :param table_info: 注册表使用的table_info参数
-        """
-        self.file_info = file_info
-        self.table_info = table_info
-        # 导入模型类
-        module = importlib.import_module('.models.{0}'.format(self.file_info.file_name.split('.')[0]), 'DataService')
-        self.class_ = getattr(module, self.file_info.name)
+from .api_manager import api_info
 
 class table_manager(file_base_manager):
     """
@@ -164,12 +149,8 @@ class table_manager(file_base_manager):
                 # i: class_in_file对象 模型定义文件中的类
                 if i.name == table['table_name']:
                     t.file_pos = i.to_json()
-                    # 记录table_context
-                    if current_app.__getattribute__('table_context'):
-                        current_app.table_context.append(table_Context(i, table))
-                    else:
-                        current_app.table_context = [table_Context(i, table)]
-
+                    # 加载api
+                    current_app.api_manager.load_api(current_app.restless_manager, api_info(i.name, i))
 
         self.session.commit()
         current_app.api_manager.register_query_api()

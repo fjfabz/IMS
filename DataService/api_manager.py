@@ -6,11 +6,15 @@ import json
 from . import postprocessors_dict, preprocessors_dict
 from .file_base_manager import file_base_manager, file_scanner, class_in_file
 from .models import get_session, Tables
-from .table_manager import table_Context
+from .table_Context import table_Context
 
 predefine_params = ['methods', 'url_prefix', 'allow_patch_many']
 
 class api_info:
+    """
+    根据映射文件记录query_api相关信息
+    用于初始化接口和接口管理
+    """
     def __init__(self, model_name, file_info: file_scanner, methods=None, url_prefix='/query', allow_patch_many=True, **kwargs):
         self.module_name = model_name
         self.table_context_ = table_Context(file_info)
@@ -49,7 +53,6 @@ class api_info:
     def __getitem__(self, item):
         self.__getattribute__(item)
 
-
 class api_manager(file_base_manager):
     def __init__(self, app: Flask):
         file_base_manager.__init__(self)
@@ -78,6 +81,13 @@ class api_manager(file_base_manager):
 
     @staticmethod
     def load_api(restless_manager, info: api_info):
+        """
+        根据传入的api_info对象加载api
+        由于需要在api_manager对象初始化之前调用该方法，restless_manager需要作为参数传入
+        :param restless_manager:
+        :param info:
+        :return:
+        """
         restless_manager.create_api(
             info.table_context_.class_,
             methods=info.methods,
@@ -87,9 +97,24 @@ class api_manager(file_base_manager):
             allow_patch_many=info.allow_patch_many
         )
 
-    def init_app(self, app):
-        app.api_manager = self
+    def flush(self, init=False):
+        """
+        扫描rules 更新api列表
+        :return:
+        """
         for rule in self.app.url_map._rules:
+            # 非初始化情况查重
+            if not init:
+                try:
+                    apis = []
+                    apis.extend(self.api)
+                    apis.extend(self.query_api)
+                    for api in apis:
+                        if api.rule.rule == rule.rule:
+                            raise Exception() # 用异常跳出多重循环
+                except:
+                    continue
+
             if rule.rule.startswith(self.api_config['query_prefix']):
                 api = query_api(rule, self, rule.rule.split('/')[2],
                                 url_prefix=self.api_config['query_prefix'])
@@ -97,6 +122,9 @@ class api_manager(file_base_manager):
             else:
                 api = API(rule, self)
             self.api.append(api)
+
+    def init_app(self, app):
+        self.flush(init=True)
 
     def close_api(self, api_path):
         for api in self.api:
