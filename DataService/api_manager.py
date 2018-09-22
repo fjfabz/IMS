@@ -6,7 +6,7 @@ import json
 from . import postprocessors_dict, preprocessors_dict
 from .file_base_manager import file_base_manager, file_scanner, class_in_file
 from .models import get_session, Tables
-from .table_manager import table_Context
+from .table_Context import table_Context
 
 predefine_params = ['methods', 'url_prefix', 'allow_patch_many']
 
