@@ -1,11 +1,8 @@
 from flask import Flask, request
 from flask_restless import APIManager
-from DataService.models import engine, get_session
 from sqlalchemy.orm import scoped_session, sessionmaker
-from DataService.api_manager import api_manager
 from DataService.utils.config_parser import Config
 from DataService.errors import *
-from DataService.table_manager import table_manager
 
 import os
 
@@ -13,8 +10,14 @@ def create_app(mode):
 
     app = Flask(__name__)
     config = Config('conf.json')
-    app.config['current_mod'] = mode
+    config['current_mod'] = mode
+    config['init'] = True
     app.service_config = config
+
+    # mode配置需要在db_engine产生前完成
+    from DataService.models import engine, get_session
+    from DataService.api_manager import api_manager
+    from DataService.table_manager import table_manager
 
     # 切换工作目录
     os.chdir(config['working_dir'])
@@ -52,5 +55,5 @@ def create_app(mode):
     return app
 
 if __name__ == '__main__':
-    app = create_app('test')
+    app = create_app('dev')
     app.run(port=8080, debug=True)
