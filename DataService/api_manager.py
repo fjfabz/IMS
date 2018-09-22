@@ -97,9 +97,24 @@ class api_manager(file_base_manager):
             allow_patch_many=info.allow_patch_many
         )
 
-    def init_app(self, app):
-        app.api_manager = self
+    def flush(self, init=False):
+        """
+        扫描rules 更新api列表
+        :return:
+        """
         for rule in self.app.url_map._rules:
+            # 非初始化情况查重
+            if not init:
+                try:
+                    apis = []
+                    apis.extend(self.api)
+                    apis.extend(self.query_api)
+                    for api in apis:
+                        if api.rule.rule == rule.rule:
+                            raise Exception() # 用异常跳出多重循环
+                except:
+                    continue
+
             if rule.rule.startswith(self.api_config['query_prefix']):
                 api = query_api(rule, self, rule.rule.split('/')[2],
                                 url_prefix=self.api_config['query_prefix'])
@@ -107,6 +122,10 @@ class api_manager(file_base_manager):
             else:
                 api = API(rule, self)
             self.api.append(api)
+
+    def init_app(self, app):
+        app.api_manager = self
+        self.flush(init=True)
 
     def close_api(self, api_path):
         for api in self.api:
