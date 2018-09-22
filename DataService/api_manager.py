@@ -124,7 +124,6 @@ class api_manager(file_base_manager):
             self.api.append(api)
 
     def init_app(self, app):
-        app.api_manager = self
         self.flush(init=True)
 
     def close_api(self, api_path):
