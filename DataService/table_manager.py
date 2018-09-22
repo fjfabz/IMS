@@ -8,7 +8,7 @@ import importlib
 
 from .file_base_manager import file_base_manager, file_scanner, class_in_file
 from .models import *
-from .api_manager import api_info
+
 
 class table_Context:
     """
@@ -26,6 +26,8 @@ class table_Context:
         module = importlib.import_module('.models.{0}'.format(self.file_info.file_name.split('.')[0]), 'DataService')
         self.class_ = getattr(module, self.file_info.name)
 
+# 与table_Context循环导入
+from .api_manager import api_info
 class table_manager(file_base_manager):
     """
     表管理器。在初始化服务时被添加到app对象中
@@ -165,13 +167,8 @@ class table_manager(file_base_manager):
                 # i: class_in_file对象 模型定义文件中的类
                 if i.name == table['table_name']:
                     t.file_pos = i.to_json()
-                    # 记录table_context
-                    if current_app.__getattribute__('table_context'):
-                        current_app.table_context.append(table_Context(i, table))
-                    else:
-                        current_app.table_context = [table_Context(i, table)]
-
-
+                    # 加载api
+                    current_app.api_manager.load_api(current_app.restless_manager, api_info(i.name, i))
 
         self.session.commit()
         current_app.api_manager.register_query_api()

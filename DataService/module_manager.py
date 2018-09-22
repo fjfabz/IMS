@@ -6,7 +6,6 @@ from flask import request, jsonify, current_app
 from .errors import general_error
 from .utils.utils import *
 import base64
-from .table_manager import table_manager
 
 """
  TODO:
