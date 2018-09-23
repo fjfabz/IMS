@@ -164,7 +164,7 @@ class table_manager(file_base_manager):
         for table in table_info:
             t = self.session.query(Tables).filter_by(name=table['table_name']).first()
             for i in self.file_info('models/{}.py'.format(self.mapping_filename))['classes']:
-                # i: class_in_file对象 模型定义文件中的类
+                # i: class_in_file
                 if i.name == table['table_name']:
                     t.file_pos = i.to_json()
                     # 加载api
@@ -323,10 +323,10 @@ class table_manager(file_base_manager):
         if not t.file_pos:
             raise ValueError('file_pos is None')
         pos_info = json.loads(t.file_pos)
-        temp_file_name = '{0}\\{1}.temp'.format(os.path.dirname(pos_info['file']),
-                                             pos_info['file'].split('\\')[-1].split('.')[0])
+        temp_file_name = '{0}\\{1}.temp'.format(os.path.dirname(pos_info['file_path']),
+                                             pos_info['file_name'].split('.')[0])
         temp_f = open(temp_file_name, 'w', encoding='utf-8')
-        with open(pos_info['file'], 'r', encoding='utf-8') as r_f:
+        with open(pos_info['file_path'], 'r', encoding='utf-8') as r_f:
             line_id = 0
             for line in r_f:
                 line_id += 1
@@ -334,7 +334,7 @@ class table_manager(file_base_manager):
                     line = ''
                 temp_f.write(line)
         temp_f.close()
-        os.remove(pos_info['file'])
+        os.remove(pos_info['file_path'])
         os.renames(temp_file_name, temp_file_name.replace('.temp', '.py'))
         # 更新Table表Field表
         table_row = self.session.query(Tables).filter_by(name=table_name, owner_id=self.current_mod.get('id')).first()
@@ -345,7 +345,7 @@ class table_manager(file_base_manager):
         # 数据库更新
         if update:
             alembic_update('delete table {0}'.format(table_name))
-        self.scan_file(pos_info['file'])  # 重新扫描文件
+        self.scan_file(pos_info['file_path'])  # 重新扫描文件
 
 
     def _test_teardown(self, table_info):
@@ -365,14 +365,20 @@ class table_manager(file_base_manager):
         os.remove('models/__init__.py')
         os.renames('models/__init__.temp', 'models/__init__.py')
         # 删除映射文件
-        os.remove('models/{}.py'.format(self.gene_filename()))
+        try:
+            os.remove('models/{}.py'.format(self.gene_filename()))
+        except FileNotFoundError:
+            pass
         # 删除Table Field表
-        for table in table_info:
-            table_row = self.session.query(Tables).filter_by(name=table['table_name'], owner_id=self.current_mod.get('id')).first()
-            for field in table_row.fields:
-                self.session.delete(field)
-            self.session.delete(table_row)
-        self.session.commit()
+        try:
+            for table in table_info:
+                table_row = self.session.query(Tables).filter_by(name=table['table_name'], owner_id=self.current_mod.get('id')).first()
+                for field in table_row.fields:
+                    self.session.delete(field)
+                self.session.delete(table_row)
+            self.session.commit()
+        except AttributeError:
+            pass
 
         v = self.session.execute('select * from alembic_version').first()[0]
         # 恢复alembic版本
