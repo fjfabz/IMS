@@ -30,13 +30,13 @@ def init_sys_tables():
 def upgrade_sys_table():
     pass
 
-def all_tables():
+def all_tables(db_name):
     """
     返回当前数据库中所有表名
     :return:
     """
     session = get_session()
-    r = session.execute("select TABLE_NAME from information_schema.TABLES where table_schema = 'ims'").fetchall()
+    r = session.execute("select TABLE_NAME from information_schema.TABLES where table_schema = '{}'".format(db_name)).fetchall()
     session.close()
     a = []
     for i in range(len(r)):
