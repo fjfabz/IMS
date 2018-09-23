@@ -136,17 +136,6 @@ class api_manager(file_base_manager):
             if api_path == api.rule.rule:
                 api.open()
 
-    def register_query_api(self):
-        for table in current_app.table_context: # table: table_Context
-            self.app.restless_manager.create_api(
-                table.module,
-                methods=['GET', 'PATCH', 'DELETE'],
-                url_prefix='/query',
-                preprocessors=preprocessors_dict,
-                postprocessors=postprocessors_dict,
-                allow_patch_many=True
-            )
-
 class API:
     """
     描述一个API接口
