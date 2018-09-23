@@ -10,6 +10,20 @@ from .file_base_manager import file_base_manager, file_scanner, class_in_file
 from .models import *
 from .api_manager import api_info
 
+def alembic_update(msg):
+    """
+    更新数据库
+    :param msg:
+    :return:
+    """
+    # 绝对路径需要写入路径
+    # alembic_cfg = Config('alembic.ini')
+    # command.upgrade(alembic_cfg, 'head')
+    # command.revision(alembic_cfg, msg, autogenerate=True)
+    # command.upgrade(alembic_cfg, 'head')
+    os.system('alembic revision --autogenerate -m "{}"'.format(msg))
+    os.system('alembic upgrade head')
+
 class table_manager(file_base_manager):
     """
     表管理器。在初始化服务时被添加到app对象中
@@ -20,6 +34,10 @@ class table_manager(file_base_manager):
         file_base_manager.__init__(self)
         self.current_mod = mod
         self.mapping_filename = None
+        self._test_rollback_version = None
+
+    def set_test_rollback_version(self, version):
+        self._test_rollback_version = version
 
     def set_mod(self, mod):
         """
@@ -140,7 +158,7 @@ class table_manager(file_base_manager):
             f.write(init_s)
         # 数据库更新
         if update:
-            self.update('module<{}> register table'.format(self.current_mod.get('name')))
+            alembic_update('module<{}> register table'.format(self.current_mod.get('name')))
         self.scan_file('models/{}.py'.format(self.mapping_filename)) # 重新扫描文件
         # file_pos and api_info
         for table in table_info:
@@ -153,7 +171,6 @@ class table_manager(file_base_manager):
                     current_app.api_manager.load_api(current_app.restless_manager, api_info(i.name, i))
 
         self.session.commit()
-        current_app.api_manager.register_query_api()
 
     def check_table_info(self, table_info):
         """
@@ -327,19 +344,9 @@ class table_manager(file_base_manager):
         self.session.commit()
         # 数据库更新
         if update:
-            self.update('delete table {0}'.format(table_name))
+            alembic_update('delete table {0}'.format(table_name))
         self.scan_file(pos_info['file'])  # 重新扫描文件
 
-    def update(self, msg):
-        """
-        更新数据库
-        :param msg:
-        :return:
-        """
-        # 绝对路径需要写入路径
-        alembic_cfg = Config('C:\\Users\\93214\\Documents\\projects\\python_proj\\IMS\\DataService\\alembic.ini')
-        command.revision(alembic_cfg, msg, autogenerate=True)
-        command.upgrade(alembic_cfg, 'head')
 
     def _test_teardown(self, table_info):
         """
@@ -348,8 +355,8 @@ class table_manager(file_base_manager):
         :return:
         """
         # 删除__init__导入
-        with open('models/__init__.py', 'r') as r_f:
-            w_f = open('models/__init__.temp', 'w')
+        with open('models/__init__.py', 'r', encoding='utf-8') as r_f:
+            w_f = open('models/__init__.temp', 'w', encoding='utf-8')
             for line in r_f:
                 if self.gene_filename() in line:
                     line = ''
@@ -366,9 +373,16 @@ class table_manager(file_base_manager):
                 self.session.delete(field)
             self.session.delete(table_row)
         self.session.commit()
+
+        v = self.session.execute('select * from alembic_version').first()[0]
         # 恢复alembic版本
         alembic_cfg = Config('alembic.ini')
-        command.downgrade(alembic_cfg, '26b27c9afbf9')
+        print(self._test_rollback_version)
+        command.downgrade(alembic_cfg, self._test_rollback_version)
+        # 删除version文件
+        for filename in os.listdir('alembic/versions'):
+            if v in filename:
+                os.remove('alembic/versions/{}'.format(filename))
 
     def gene_filename(self):
         m = hashlib.md5()
