@@ -2,6 +2,18 @@
     "init": true,
     "current_mod": "dev",
     "working_dir": "C:\\Users\\93214\\Documents\\projects\\python_proj\\IMS\\DataService",
+    "run_config": {
+        "test": {
+            "host": "127.0.0.1",
+            "port": "8888",
+            "debug": "True"
+        },
+        "dev": {
+            "host": "127.0.0.1",
+            "port": "8888",
+            "debug": "True"
+        }
+    },
     "db": {
         "dev": {
             "user": "root",

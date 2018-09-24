@@ -56,4 +56,5 @@ def create_app(mode):
 
 if __name__ == '__main__':
     app = create_app('dev')
-    app.run(port=8080, debug=True)
+    run_config = app.service_config['run_config'][app.service_config['current_mod']]
+    app.run(port=run_config['port'], debug=bool(run_config['debug']))

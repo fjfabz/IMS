@@ -4,15 +4,15 @@ sys.path.append('../')
 from DataService.models import get_session, Tables, Fields, ModuleReg
 from DataService.table_manager import table_manager
 
-def init_sys_tables():
+def init_sys_tables(db_name):
     """
     初始化系统表Tables, Fields, Sensitivity
     :return:
     """
     session = get_session()
-    r = session.execute("select TABLE_NAME from information_schema.TABLES where table_schema = 'ims'").fetchall()
+    r = session.execute("select TABLE_NAME from information_schema.TABLES where table_schema = '{}'".format(db_name)).fetchall()
     # print(r[0][0])
-    added = True
+    added = True # 安全开关
     if not added:
         for i in range(len(r)):
             table_name = r[i][0]
@@ -20,7 +20,7 @@ def init_sys_tables():
             session.add(new_t)
             session.commit()
             f = session.execute("SELECT COLUMN_NAME FROM information_schema.columns\
-                                  WHERE table_schema = 'ims' AND table_name = '{}'".format(table_name)).fetchall()
+                                  WHERE table_schema = '{}' AND table_name = '{}'".format(db_name, table_name)).fetchall()
             for j in range(len(f)):
                 new_f = Fields(name=f[j][0], table_id=new_t.id, sensitivity=0)
                 session.add(new_f)
