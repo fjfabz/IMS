@@ -50,7 +50,7 @@ table_info1 = [
 ]
 test_info = [table_info1]
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope='function')
 def table_test_fixture():
     app = create_app('test')
     app_ctx = app.app_context()
@@ -62,7 +62,7 @@ def table_test_fixture():
     manager.set_test_rollback_version(version)
     yield manager
     for i in test_info:
-        manager._test_teardown(i)
+        manager.test_teardown(i)
 
 
 @pytest.mark.parametrize('table_info', [
@@ -77,7 +77,7 @@ def test_register_table(table_test_fixture, table_info):
     session = manager.session
     manager.register_table(table_info)
 
-    all_table = all_tables()
+    all_table = all_tables('ims_test')
     # Table Field表更新
     for table in table_info:
         table_row = session.query(Tables).filter_by(name=table['table_name'], owner_id=manager.current_mod.get('id')).first()
@@ -88,6 +88,7 @@ def test_register_table(table_test_fixture, table_info):
         for field in table['fields']:
             field_row = session.query(Fields).filter_by(name=field, table_id=table_row.id).first()
             assert field_row is not None
+        #
 
 
 @pytest.mark.parametrize('table_info', [
@@ -101,15 +102,19 @@ def test_delete_table(table_test_fixture, table_info):
     manager = table_test_fixture
 
     for table in table_info:
+        table_row = session.query(Tables).filter_by(name=table['table_name'],
+                                                    owner_id=manager.current_mod.get('id')).first()
+        table['table_id'] = table_row.id
         manager.delete_table(table['table_name'])
 
-    all_table = all_tables()
+
+    all_table = all_tables('ims_test')
     # Table Field表更新
     for table in table_info:
         table_row = session.query(Tables).filter_by(name=table['table_name'], owner_id=manager.current_mod.get('id')).first()
         assert table_row is None
-        # 新表生成
+        # 表删除
         assert table['table_name'] not in all_table
         for field in table['fields']:
-            field_row = session.query(Fields).filter_by(name=field, table_id=table_row.id).first()
+            field_row = session.query(Fields).filter_by(name=field, table_id=table['table_id']).first()
             assert field_row is None
