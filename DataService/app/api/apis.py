@@ -3,6 +3,7 @@ from flask import request, jsonify, current_app
 from DataService.module_manager import module_manager, signature_verify
 from DataService.errors import *
 from DataService.utils.utils import *
+import json
 
 @api.route('/register', methods=['POST'])
 def register():
@@ -33,22 +34,19 @@ def register():
 @api.route('/register_table', methods=['POST'])
 @signature_verify
 def register_table():
-    id = request.args.get('id', None) # signature_verify会验证id存在
-    table_info = request.args.get('table_info', None)
+    id = int(request.args.get('module_id', None)) # signature_verify会验证id存在
+    table_info =  json.loads(request.args.get('table_info', None))
     if table_info is None:
         return general_error(400, 'table info is required')
     mod = module_manager(id)
     try:
         mod.register_table(table_info)
+        return jsonify({
+            'code': 200,
+            'msg': 'register success'
+        })
     except ValueError as e:
         return general_error(400, repr(e))
-
-
-@api.route('/pubkey')
-def get_pubkey():
-    return jsonify({
-        'pubkey': pubkey_str(),
-    })
 
 @api.route('/module_pubkey/<int:id>')
 def module_pubkey(id):
@@ -58,6 +56,7 @@ def module_pubkey(id):
         'pubkey': mod.get('pubkey')
     })
 
+############# test API ################
 
 @api.route('/test', methods=['GET', 'POST'])
 def test_():
@@ -69,3 +68,17 @@ def test_():
 @api.route('/close_test')
 def close_test():
     current_app.api_manager.close_api('/api/test')
+
+@api.route('/teardown', methods=['POST'])
+def teardown():
+    current_app.table_manager.set_mod(module_manager(int(request.args.get('module_id'))))
+    current_app.table_manager.test_teardown(request.args.get('table_info'), request.args.get('version', None))
+
+@api.route('/verify_test', methods=['POST'])
+@signature_verify
+def verify_test():
+    return jsonify({
+        'code': 200,
+        'msg': 'pass',
+        'sign': request.args.get('signature')
+    })
