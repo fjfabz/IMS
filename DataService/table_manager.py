@@ -3,7 +3,7 @@ from alembic.config import Config
 from alembic import command
 from flask import current_app
 import sys
-import os
+import os, shutil
 import importlib
 
 from .file_base_manager import file_base_manager, file_scanner, class_in_file
@@ -348,7 +348,7 @@ class table_manager(file_base_manager):
         self.scan_file(pos_info['file_path'])  # 重新扫描文件
 
 
-    def _test_teardown(self, table_info):
+    def test_teardown(self, table_info, version=None):
         """
         测试失败时恢复环境
         :param table_info:
@@ -380,14 +380,15 @@ class table_manager(file_base_manager):
         except AttributeError:
             pass
 
-        v = self.session.execute('select * from alembic_version').first()[0]
+        v = version if version else self.session.execute('select * from alembic_version').first()[0]
         # 恢复alembic版本
         alembic_cfg = Config('alembic.ini')
-        print(self._test_rollback_version)
+        # print(self._test_rollback_version)
         command.downgrade(alembic_cfg, self._test_rollback_version)
         # 删除version文件
         for filename in os.listdir('alembic/versions'):
             if v in filename:
+                shutil.move('alembic/versions/{}'.format(filename), 'alembic/versions_bak/{}'.format(filename))
                 os.remove('alembic/versions/{}'.format(filename))
 
     def gene_filename(self):
