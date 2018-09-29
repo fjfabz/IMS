@@ -1,54 +1,29 @@
-import pytest
 import requests
-from . import base_url, privkey
 from ..utils.utils import *
-import json, base64
+import base64
+from ..module_manager import module_manager
 
-'''
-issues：
-    - 发送sign和接受sign
-'''
+def test_verify():
+    # 测试module_manager.verify()
+    # 该测试通过
+    # module_manager.verify() signature() 函数功能正常
+    mod = module_manager(1)
+    assert mod.verify(signature(mod.pubkey, priv_str())) == True
 
-'''
-note:
-    sign通过bas64编码后传输
-    
-    
-'''
-
-def test_get_pubkey():
-    url = base_url + '/pubkey'
-    r = requests.get(url)
-    assert pubkey_check(r.json()['pubkey']) == True
-
-def test_pubkey_one(): # 使用公钥与记录公钥一致
-    url = base_url + '/module_pubkey/1'
-    r = requests.get(url).json()
-    # print(pubkey_str())
-    # print(r['pubkey'])
-    assert pubkey_str() == r['pubkey'] # 与记录的公钥不一致
-
-
-def test_signature_verify():  # 测试本地privkey和上传之后一致
-
-    priv = priv_str()
-    url = base_url + '/pubkey'
-    r = requests.get(url)
-    msg = r.json()['pubkey']
-    sign = signature(msg, privkey)
-    data = {
+def test_server_verify():
+    # 测试验证装饰器
+    # 该测试通过
+    # verify逻辑正常
+    mod = module_manager(1)
+    params = {
         'module_id': 1,
-        'signature': base64.b64encode(sign),
-        'privkey': priv
+        'signature': base64.b64encode(signature(mod.pubkey, priv_str())).decode()
     }
-    url = base_url + '/test'
-    r = requests.post(url, params=data)
-    r = r.json()
-    assert True == verify(msg, sign, pubkey_str())
-    if r['code'] == 403:
-        assert pubkey_str() == r['pubkey'] # 测试密钥对匹配
-        assert sign == base64.b64decode(r['msg'])
-        assert verify(msg, sign, pubkey_str())
-        assert verify(msg, sign, r['pubkey']) # 不是pubkey问题
-    assert r['code'] == 200
+    # assert params['signature'] == signature(mod.pubkey, priv_str())
+    print(len(params['signature']))
+    r = requests.post('http://127.0.0.1:8888/api/verify_test', params=params)
+    print(len(bytes(r.json()['sign'], encoding='utf-8')))
+    assert r.json()['msg'] == 'pass'
+    assert r.json()['sign'] == params['signature']
+
 
