@@ -6,6 +6,7 @@ from flask import request, jsonify, current_app
 from .errors import general_error
 from .utils.utils import *
 import base64
+import rsa
 
 """
  TODO:
@@ -16,12 +17,12 @@ import base64
     - pubkey bytes转换
 """
 
-class module_manager():
+class module_manager:
 
     def __init__(self, id=None):
         self.session = get_session()
         self.row = None
-        self.pubkey = load_key()
+        self.pubkey = None
         if id is not None:
             self.load_module(id)
 
@@ -58,6 +59,7 @@ class module_manager():
         :return: 行对象
         """
         self.row = self.session.query(ModuleReg).filter_by(id=id).first()
+        self.pubkey = self.row.pubkey
         if self.row is None:
             raise ValueError('Failed to load mod whit id={}'.format(id))
         return self.row
@@ -89,7 +91,14 @@ class module_manager():
         :return:
         """
         # self.pubkey = load_key()[0]
-        return verify(pubkey_str(), sign, self.get('pubkey'))
+        # return verify(pubkey_str(), sign, self.get('pubkey'))
+        if isinstance(sign, str):
+            sign = bytes(sign, encoding='utf-8')
+        try:
+            rsa.verify(self.pubkey.encode(), sign, rsa.PublicKey.load_pkcs1(self.pubkey.encode()))
+            return True
+        except rsa.pkcs1.VerificationError:
+            return False
 
     def register_table(self, table_info):
         """
@@ -160,22 +169,32 @@ class module_manager():
         return field_l
 
 def signature_verify(func):
+    """
+    签名验证装饰器
+    注意：由于使用rsa直接签名在request中会因为decode()出现信息丢失，需要在请求时将sign进行base64编码并解码为str传输
+    :param func:
+    :return:
+    """
     @wraps(func)
     def wrapper(*args, **kwargs):
         try:
             id = int(request.args.get('module_id', None))
-            sign = base64.b64decode(request.args.get('signature', None)) # sign通过base64编码上传
+            sign = request.args.get('signature', None)
+            # sign += '=' * (-len(sign) % 4)
+            sign = sign.encode()
+            sign = base64.b64decode(sign)
+            print(len(sign))
             if id is None:
                 return general_error('400', 'module_id is required')
             if sign is None:
                 return general_error('400', 'signature is required')
             mod = module_manager(id)  # 实例化module_manager
-        except ValueError:
-            return general_error('400', 'module_id invalid')
+        except ValueError as e:
+            return general_error('400', 'unknown error', error_msg=repr(e))
         # 模块权限认证
         # 验证签名
         v = mod.verify(sign) # type(sign) == bytes
         if not v:
-            return general_error('403', request.args.get('signature', None), pubkey=mod.get('pubkey'))
+            return general_error('403', 'verify failed', pubkey=mod.get('pubkey'), sign=sign.decode())
         return func(*args, **kwargs)
     return wrapper

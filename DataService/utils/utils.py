@@ -65,16 +65,6 @@ def pub_encrypt(msg):
     crypto = rsa.encrypt(msg.encode(), pubkey)
     return crypto.decode()
 
-def priv_encrypt(msg):
-    """
-    私钥加密方法
-    :param msg:
-    :return: 加密字符串
-    """
-    pubkey, privkey = load_key()
-    crypto = rsa.encrypt(msg.encode(), privkey)
-    return crypto.decode()
-
 def signature(msg, privkey):
     """
     签名生成
