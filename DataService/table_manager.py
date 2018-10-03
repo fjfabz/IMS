@@ -385,6 +385,8 @@ class table_manager(file_base_manager):
         v = version if version else self._test_rollback_version
         # 恢复alembic版本
         alembic_cfg = Config('alembic.ini')
+        # 先更新到最新版本
+        command.upgrade(alembic_cfg, 'head')
         del_version = self.session.execute('select * from alembic_version').first()[0]
         command.downgrade(alembic_cfg, v)
         # 删除version文件
