@@ -1,6 +1,6 @@
 {
     "init": true,
-    "current_mod": "dev",
+    "current_mod": "test",
     "working_dir": "C:\\Users\\93214\\Documents\\projects\\python_proj\\IMS\\DataService",
     "run_config": {
         "test": {
