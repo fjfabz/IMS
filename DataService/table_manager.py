@@ -156,6 +156,7 @@ class table_manager(file_base_manager):
         with open('models/__init__.py', 'a+') as f:
             init_s = 'from .{} import * # from module<{}>\n'.format(self.mapping_filename, self.current_mod.get('name'))
             f.write(init_s)
+        self._test_rollback_version = self.session.execute('select * from alembic_version').first()[0]
         # 数据库更新
         if update:
             alembic_update('module<{}> register table'.format(self.current_mod.get('name')))
@@ -316,6 +317,7 @@ class table_manager(file_base_manager):
         :param update:
         :return:
         """
+        self._test_rollback_version = self.session.execute('select * from alembic_version').first()[0]
         t = self.session.query(Tables).filter_by(name=table_name).first()
         if not t:
             raise ValueError('{0} is not defined'.format(table_name))
@@ -380,14 +382,14 @@ class table_manager(file_base_manager):
         except AttributeError:
             pass
 
-        v = version if version else self.session.execute('select * from alembic_version').first()[0]
+        v = version if version else self._test_rollback_version
         # 恢复alembic版本
         alembic_cfg = Config('alembic.ini')
-        # print(self._test_rollback_version)
-        command.downgrade(alembic_cfg, self._test_rollback_version)
+        del_version = self.session.execute('select * from alembic_version').first()[0]
+        command.downgrade(alembic_cfg, v)
         # 删除version文件
         for filename in os.listdir('alembic/versions'):
-            if v in filename:
+            if del_version in filename:
                 shutil.move('alembic/versions/{}'.format(filename), 'alembic/versions_bak/{}'.format(filename))
                 os.remove('alembic/versions/{}'.format(filename))
 
