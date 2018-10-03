@@ -72,7 +72,8 @@ def close_test():
 @api.route('/teardown', methods=['POST'])
 def teardown():
     current_app.table_manager.set_mod(module_manager(int(request.args.get('module_id'))))
-    current_app.table_manager.test_teardown(request.args.get('table_info'), request.args.get('version', None))
+    table_info = json.loads(request.args.get('table_info'))
+    current_app.table_manager.test_teardown(table_info, request.args.get('version', None))
 
 @api.route('/verify_test', methods=['POST'])
 @signature_verify
