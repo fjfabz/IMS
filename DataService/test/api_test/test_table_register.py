@@ -58,11 +58,11 @@ def teardown():
     params = {
         'module_id': 1,
         'signature': base64.b64encode(signature(mod.pubkey, priv_str())).decode(),
-        'table_info': table_info1,
+        'table_info': json.dumps(table_info1),
         'version': version
     }
     conf = get_config()['run_config']['test']
-    requests.post('http://{0}:{1}/api/teardonw'.format(conf['host'], conf['port']), params=params)
+    requests.post('http://{0}:{1}/api/teardown'.format(conf['host'], conf['port']), params=params)
 
 @pytest.mark.parametrize('table_info', [
     table_info1,
@@ -79,13 +79,12 @@ def test_register_table(teardown, table_info):
     print(params['table_info'])
     conf = get_config()['run_config']['test']
     r = requests.post('http://{0}:{1}/api/register_table'.format(conf['host'], conf['port']), params=params)
+    assert r.json()['code'] == 200
     for table in table_info:
-        print(r.json())
-        assert r.json()['code'] == 200
         # 接口可用测试
         pre_url = 'http://{0}:{1}/query'.format(conf['host'], conf['port'])
         url = pre_url + '/{}'.format(table['table_name'])
         r = requests.get(url, params=params)
         print(url)
-        assert r.json()['code'] == 200
+        assert r.status_code == 200
 
