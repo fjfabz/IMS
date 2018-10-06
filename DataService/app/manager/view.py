@@ -37,7 +37,6 @@ def index():
         data['tables'][table.name]['name'] = table.name
         data['tables'][table.name]['owner_id'] = table.owner_id
         data['tables'][table.name]['status'] = table.status
-        data['tables'][table.name]['api_gene'] = table.api_gene
         data['tables'][table.name]['sensitivity'] = table.sensitivity
 
     # fields = db_session.query(Fields).all()

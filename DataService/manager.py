@@ -58,4 +58,4 @@ if __name__ == '__main__':
     app = create_app('test')
     run_config = app.service_config['run_config'][app.service_config['current_mod']]
     print('run with mod {}'.format(app.service_config['current_mod']))
-    app.run(port=int(run_config['port']))#, debug=bool(run_config['debug']))
+    app.run(port=int(run_config['port']), debug=bool(run_config['debug']))

@@ -1,13 +1,13 @@
 from . import api
 from flask import request, jsonify, current_app
-from DataService.module_manager import module_manager, signature_verify
+from DataService.module_manager import module_manager, auth_verify
 from DataService.errors import *
 from DataService.utils.utils import *
 import json
 
 @api.route('/register', methods=['POST'])
 def register():
-    register_field_check = ['name', 'description', 'user_role', 'pubkey', 'auth_email']
+    register_field_check = ['name', 'admin_pw', 'description', 'user_role', 'pubkey', 'auth_email']
     mod_manager = module_manager()
     mod_info = request.args
     for filed in register_field_check:
@@ -32,7 +32,7 @@ def register():
     })
 
 @api.route('/register_table', methods=['POST'])
-@signature_verify
+@auth_verify
 def register_table():
     id = int(request.args.get('module_id', None)) # signature_verify会验证id存在
     table_info =  json.loads(request.args.get('table_info', None))
@@ -76,7 +76,7 @@ def teardown():
     current_app.table_manager.test_teardown(table_info, request.args.get('version', None))
 
 @api.route('/verify_test', methods=['POST'])
-@signature_verify
+@auth_verify
 def verify_test():
     return jsonify({
         'code': 200,

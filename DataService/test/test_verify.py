@@ -10,8 +10,8 @@ def test_verify():
     mod = module_manager(1)
     assert mod.verify(signature(mod.pubkey, priv_str())) == True
 
-def test_server_verify():
-    # 测试验证装饰器
+def test_server_sign_verify():
+    # 测试验证装饰器 通过sign验证
     # 该测试通过
     # verify逻辑正常
     mod = module_manager(1)
@@ -26,4 +26,5 @@ def test_server_verify():
     assert r.json()['msg'] == 'pass'
     assert r.json()['sign'] == params['signature']
 
-
+def test_server_pw_verify():
+    pass

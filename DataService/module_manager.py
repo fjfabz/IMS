@@ -74,7 +74,7 @@ class module_manager:
         else:
             return True
 
-    def get(self, field):
+    def get(self, field, default=None):
         """
         获取字段值
         :param field: 字段名
@@ -82,7 +82,7 @@ class module_manager:
         """
         if not self.loaded():
             raise AttributeError('Do not load any module')
-        return getattr(self.row, field, None)
+        return getattr(self.row, field, default)
 
     def verify(self, sign):
         """
@@ -168,7 +168,15 @@ class module_manager:
                 field_l.append(field.name)
         return field_l
 
-def signature_verify(func):
+    def check_pw(self, pw):
+        """
+        验证密码
+        :param pw:
+        :return:
+        """
+        pass
+
+def auth_verify(func):
     """
     签名验证装饰器
     注意：由于使用rsa直接签名在request中会因为decode()出现信息丢失，需要在请求时将sign进行base64编码并解码为str传输
@@ -177,24 +185,30 @@ def signature_verify(func):
     """
     @wraps(func)
     def wrapper(*args, **kwargs):
+        id = int(request.args.get('module_id', None))
+        if id is None:
+            return general_error('400', 'module_id is required')
+        mod = module_manager(id)  # 实例化module_manager
+        # 模块管理员密码验证
+        if bool(request.args.get('using_admin_pw', False)):
+            pw = request.args.get('admin_pw', None)
+            if not pw:
+                return general_error('400', 'admin_pw is required')
+            if not mod.check_pw(pw):
+                return general_error('403', 'verify failed', pubkey=mod.get('pubkey'))
+            return func(*args, **kwargs)
+        # 签名验证
         try:
-            id = int(request.args.get('module_id', None))
             sign = request.args.get('signature', None)
             # sign += '=' * (-len(sign) % 4)
             sign = sign.encode()
             sign = base64.b64decode(sign)
-            print(len(sign))
-            if id is None:
-                return general_error('400', 'module_id is required')
             if sign is None:
                 return general_error('400', 'signature is required')
-            mod = module_manager(id)  # 实例化module_manager
         except ValueError as e:
             return general_error('400', 'unknown error', error_msg=repr(e))
-        # 模块权限认证
-        # 验证签名
-        v = mod.verify(sign) # type(sign) == bytes
-        if not v:
+        # v = mod.verify(sign) # type(sign) == bytes
+        if not mod.verify(sign):
             return general_error('403', 'verify failed', pubkey=mod.get('pubkey'), sign=sign.decode())
         return func(*args, **kwargs)
     return wrapper
