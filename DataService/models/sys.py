@@ -9,7 +9,7 @@ class ModuleReg(Base):
     id = Column(Integer, primary_key=True)
     pubkey = Column(String(256)) # 模块公钥
     auth = Column(String(64)) # 作者
-    admin_pw = Column(String(64)) # 管理员密码
+    admin_pw = Column(String(256)) # 管理员密码
     auth_email = Column(String(64)) # 作者邮箱
     name = Column(String(64)) # 模块名
     description = Column(Text) # 模块描述
@@ -68,6 +68,15 @@ class SysAPI(Base):
     # 0 关闭
     # 1 开放
     sensitivity = Column(Integer) # API敏感度
+
+# 系统管理员
+class Admins(Base):
+    __tablename__ = 'admins'
+
+    id = Column(Integer, primary_key=True)
+    user_name = Column(String(64))
+    pw = Column(String(256))
+    permission = Column(Integer) # 二进制位图
 
 # log
 class APILog(Base):
