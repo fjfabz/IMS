@@ -9,6 +9,7 @@ class ModuleReg(Base):
     id = Column(Integer, primary_key=True)
     pubkey = Column(String(256)) # 模块公钥
     auth = Column(String(64)) # 作者
+    admin_pw = Column(String(64)) # 管理员密码
     auth_email = Column(String(64)) # 作者邮箱
     name = Column(String(64)) # 模块名
     description = Column(Text) # 模块描述
